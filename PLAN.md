@@ -17,7 +17,8 @@ The library uses TypeScript interfaces for service definitions (no codegen). A s
 | Pipelining | No. Batch calls are independent. |
 | Notifications | Yes. `client.notify.method(...)` syntax, returns `Promise<void>` (resolves on send, rejects on transport error). `notify` is a reserved name. |
 | Server shape | Plain object/class instance, no context injection into methods |
-| Server I/O | `handleRpc(request: Request, service): Promise<Response>`. Handles body reading, JSON parsing, -32700, status codes, Content-Type. |
+| Server I/O | Transport-agnostic core: `processRpc(body: unknown, service): Promise<JsonRpcResponse \| JsonRpcResponse[] \| null>`. HTTP wrapper: `handleRpc(request: Request, service): Promise<Response>`. |
+| Client transport | Pluggable via `RpcTransport` type. Default is fetch-based. |
 | Package name | `@jmorrell/jsonrpc` |
 | Dependencies | Zero runtime dependencies |
 | Params style | By-position (arrays) on both client and server. Named params (objects) rejected with -32602 Invalid params. |
@@ -58,6 +59,9 @@ interface JsonRpcErrorResponse {
 }
 
 type JsonRpcResponse = JsonRpcSuccessResponse | JsonRpcErrorResponse;
+
+// Client transport abstraction — takes serialized JSON, returns serialized JSON
+type RpcTransport = (body: string) => Promise<string>;
 ```
 
 ### client.ts
@@ -84,6 +88,11 @@ const client = rpcClient<MyService>({
   getHeaders: () => ({ Authorization: `Bearer ${token}` }),        // sync
   getHeaders: async () => ({ Authorization: `Bearer ${token}` }),   // or async
 });
+
+// Custom transport (e.g. WebSocket, PostMessage):
+const client = rpcClient<MyService>({
+  transport: (body: string) => ws.sendAndReceive(body),
+});
 ```
 
 **How auto-batching works:**
@@ -94,23 +103,30 @@ const client = rpcClient<MyService>({
    - If exactly 1 item is queued → sent as a single JSON-RPC request object (not an array). Compatible with servers that don't support batching.
    - If 2+ items are queued → sent as a JSON-RPC batch array.
 4. Responses are matched to pending promises by `id`.
-5. If `fetch` fails (network error, non-2xx, or body is not valid JSON), ALL pending promises in that batch reject.
+5. If the transport fails (network error, non-2xx for fetch, or response is not valid JSON), ALL pending promises in that batch reject.
    - If a batch was sent but the server returns a single JSON-RPC error object (not an array) — e.g. for parse errors — all pending promises reject with that error.
 6. If the server returns fewer responses than expected, promises with no matching response reject with an error.
-7. Responses with unrecognized IDs are silently ignored.
+7. **Single request:** if the response `id` does not match the request `id`, reject the promise with an error (don't silently hang).
+8. **Batch:** responses with unrecognized IDs are silently ignored.
 
 **Request IDs:** Auto-incrementing integers starting from 1, scoped to the client instance.
 
 **Notifications:**
 - `client.notify` returns a Proxy that creates requests without an `id` field.
-- Returns `Promise<void>` — resolves when the batch containing the notification is successfully sent (HTTP 2xx). Rejects on transport errors (network failure, non-2xx). No JSON-RPC response is expected from the server for notifications.
+- Returns `Promise<void>` — resolves when the batch containing the notification is successfully sent. Rejects on transport errors. No JSON-RPC response is expected from the server for notifications.
 
-**Reserved property names:** `then`, `toJSON`, `notify` — these cannot be used as RPC method names on the client.
+**Reserved property names:** `then`, `toJSON`, `notify`, and all Symbols — these cannot be used as RPC method names on the client. Symbol property accesses return `undefined`.
 
 ### server.ts
 
+**Exports:** `processRpc`, `handleRpc`, `isJsonRpcRequest`
+
 ```ts
-// Takes a Request, returns a Response. Handles everything.
+// Transport-agnostic core — parsed JSON in, JSON-RPC response(s) out:
+const result = await processRpc(parsedBody, service);
+// result is JsonRpcResponse | JsonRpcResponse[] | null (null = notification, no response)
+
+// HTTP wrapper — takes a Request, returns a Response. Handles everything:
 const response = await handleRpc(request, service);
 
 // Usage in Cloudflare Worker:
@@ -124,37 +140,67 @@ export default {
 return handleRpc(req, myService, {
   onError: (err) => console.error(err),
 });
+
+// Custom transport (e.g. WebSocket message handler):
+ws.on("message", async (data) => {
+  const body = JSON.parse(data);
+  const result = await processRpc(body, myService);
+  if (result !== null) ws.send(JSON.stringify(result));
+});
 ```
 
-**`handleRpc` signature:**
+**`processRpc` signature (transport-agnostic core):**
+```ts
+function processRpc<T>(
+  body: unknown,
+  service: T,
+  options?: RpcHandlerOptions
+): Promise<JsonRpcResponse | JsonRpcResponse[] | null>
+// Returns null when the input is a notification (or all-notification batch) — caller decides how to represent "no response" for their transport.
+```
+
+**`handleRpc` signature (HTTP wrapper):**
 ```ts
 function handleRpc<T>(
   request: Request,
   service: T,
   options?: RpcHandlerOptions
 ): Promise<Response>
+// Thin wrapper: reads body, parses JSON, calls processRpc, wraps result in Response with appropriate status codes and headers.
 ```
 
-**`handleRpc` behavior:**
+**`handleRpc` behavior (HTTP-specific):**
 
 1. Check HTTP method. If not POST → respond 405 with `Allow: POST` header.
 2. Read body as text from the `Request`.
 3. Parse JSON. If parse fails → respond 200 with `{ jsonrpc: "2.0", error: { code: -32700, message: "Parse error" }, id: null }`.
-4. If parsed value is neither an object nor an array (e.g. a JSON primitive) → respond 200 with Invalid Request error, `id: null`.
-5. If parsed value is an empty array → respond 200 with Invalid Request error, `id: null`.
-6. If parsed value is an object → process as single request, respond 200 with single JSON-RPC response.
-7. If parsed value is a non-empty array → process as batch:
-   - Each item is processed independently. An exception in one handler MUST NOT affect others. (Per-item try/catch, NOT `Promise.all` over raw invocations.)
+4. Call `processRpc(parsedBody, service, options)`.
+5. If `processRpc` returns `null` → respond 204 (no body).
+6. Otherwise → respond 200 with JSON-serialized result. Content-Type: `application/json`.
+7. CORS is out of scope — users should handle CORS (e.g. OPTIONS preflight) before calling `handleRpc`.
+
+**`processRpc` behavior (transport-agnostic):**
+
+1. If input is neither an object nor an array (e.g. a JSON primitive) → return Invalid Request error, `id: null`.
+2. If input is an empty array → return Invalid Request error, `id: null`.
+3. If input is an object → process as single request:
+   - If it is a notification (no `id` member — see note below) → execute the method, return `null`. The spec says "The Server MUST NOT reply to a Notification."
+   - Otherwise → return single `JsonRpcResponse`.
+4. If input is a non-empty array → process as batch:
+   - Each item is wrapped in a per-item try/catch that converts errors to JSON-RPC error response objects. Then `Promise.all` is used for concurrency (no item will reject, since errors are already caught and converted).
    - Non-object items in the array (numbers, strings, etc.) → Invalid Request error with `id: null`.
    - Invalid request objects → Invalid Request error, `id` from request if detectable, else `null`.
-   - Notifications (requests without `id`) are executed but produce no response entry.
+   - Notifications (requests without `id` member) are executed but produce no response entry.
    - Responses are collected into an array.
-   - If all items were notifications (response array is empty) → respond 204 (no body).
-   - Otherwise → respond 200 with JSON array of responses.
-8. Process batch items concurrently with `Promise.allSettled` (error isolation).
-9. Requests for methods starting with `rpc.` → reject with Method not found (-32601).
-10. When generating error responses for requests where the `id` could not be detected, the response `id` MUST be `null`.
-11. All JSON responses use `Content-Type: application/json`.
+   - If all items were notifications (response array is empty) → return `null`.
+   - Otherwise → return array of `JsonRpcResponse`.
+5. **Notification detection:** A notification is a request with no `id` **member** at all. Must use property existence check (`!("id" in request)`), NOT a nullish check. `{ "id": null }` is a regular call with a null id (response required, per spec). This distinction is critical.
+6. **Method dispatch safety:** Before calling `service[method]`, reject the call if:
+   - Method starts with `rpc.` → -32601 Method not found (spec-reserved).
+   - Method name exists in `Object.prototype` (e.g. `constructor`, `__proto__`, `toString`, `hasOwnProperty`) → -32601 Method not found. Use `method in Object.prototype` as a dynamic denylist (pattern from capnweb).
+   - `typeof service[method] !== "function"` → -32601 Method not found.
+7. **`undefined` results normalized to `null`:** If a handler returns `undefined`, the response `result` MUST be `null`. Otherwise `JSON.stringify` omits the `result` key entirely, producing a non-compliant response (spec requires `result` on success).
+8. When generating error responses for requests where the `id` could not be detected, the response `id` MUST be `null`.
 
 ## Implementation Order
 
@@ -165,22 +211,30 @@ function handleRpc<T>(
 4. Write type-level server types (`RpcHandlerOptions`)
 
 ### Phase 2: Test Suite (tests BEFORE implementation)
-5. **server unit tests:**
+5. **server unit tests (`processRpc` — transport-agnostic):**
    - `isJsonRpcRequest` validation (valid requests, missing fields, wrong types)
-   - `handleRpc` with invalid JSON body (→ -32700 Parse error, 200 status)
-   - `handleRpc` single requests: success, method not found, error in handler
-   - `handleRpc` error extraction (code, message, data from thrown errors)
+   - `processRpc` single requests: success, method not found, error in handler
+   - `processRpc` error extraction (code, message, data from thrown errors)
    - Reserved `rpc.` method rejection
-   - Primitives as body (string, number, bool, null JSON) → Invalid Request
+   - Object.prototype method rejection (`constructor`, `__proto__`, `toString`, etc. → -32601)
+   - Non-function service property → -32601 Method not found
+   - Primitives as input (string, number, bool, null) → Invalid Request
+   - Single notification → returns `null`, method still executes
+   - `id: null` is NOT a notification — must produce a response
+   - Handler returning `undefined` → response has `result: null`
+   **server HTTP tests (`handleRpc` — HTTP wrapper):**
+   - Invalid JSON body → -32700 Parse error, 200 status
    - Response has correct Content-Type: application/json
    - Non-POST requests → 405 with Allow: POST header
-6. **server batch tests:**
+   - Notification → 204 (no body)
+   - Normal request → 200 with JSON body
+6. **server batch tests (`processRpc`):**
    - Array of valid requests → array of responses
    - Mixed requests and notifications → responses only for non-notifications
    - Empty array → single Invalid Request error
    - Array with non-object items (`[1, 2, 3]`) → array of Invalid Request errors
    - Mixed valid + invalid items in batch
-   - All-notification batch → 204 response with no body
+   - All-notification batch → returns `null`
    - Error isolation: one handler throws, others succeed
    - Concurrent execution (handlers run in parallel)
 7. **client unit tests:**
@@ -188,14 +242,15 @@ function handleRpc<T>(
    - `createRequest` format and ID generation (auto-increment integers)
    - Single call sends single object (not array)
    - Notification request has no `id` field
-8. **client batching tests (mock fetch):**
-   - Two synchronous calls → one fetch with array of 2
-   - Two `await`-separated calls → two separate fetches
+8. **client batching tests (mock transport):**
+   - Two synchronous calls → one transport call with array of 2
+   - Two `await`-separated calls → two separate transport calls
    - Response dispatch: correct result to correct promise by ID
    - Batch with mixed successes and errors: successful promises resolve, failed ones reject
-   - Fetch failure → all promises in batch reject
+   - Transport failure → all promises in batch reject
    - Server returns fewer responses than requests → unmatched promises reject
-   - Server returns unrecognized IDs → silently ignored
+   - Server returns unrecognized IDs in batch → silently ignored
+   - Single request with mismatched response ID → promise rejects
    - Server returns single error object for a batch → all promises reject
    - Single call + notification in same tick → batch (array of 2)
    - `notify` returns Promise<void> that resolves on successful send, rejects on transport error
@@ -209,7 +264,7 @@ function handleRpc<T>(
     - All predefined error codes (-32700, -32600, -32601, -32602, -32603)
     - ID types: string, number, null
     - Response id is null when request id undetectable
-    - Spec examples from specification.md reproduced as tests
+    - Spec examples from specification.md reproduced as tests (named-params examples adapted to verify -32602 rejection, since this library only supports by-position params)
 11. **property-based tests (fast-check):**
     - Any valid JsonRpcRequest produces a valid JsonRpcResponse
     - Batch of N non-notification requests → exactly N responses
@@ -217,22 +272,26 @@ function handleRpc<T>(
     - Error responses always have valid error objects
 
 ### Phase 3: Server Implementation
-12. Implement `isJsonRpcRequest` type guard
-13. Implement `handleRpc` for single requests (Request → read body → parse → validate → dispatch → Response)
-14. Extend `handleRpc` for batch support (array input, `Promise.allSettled`, error isolation)
-15. Implement notification handling (no response for id-less requests)
+12. Implement `isJsonRpcRequest` type guard (export it)
+13. Implement `processRpc` for single requests (validate → dispatch → return JsonRpcResponse | null)
+    - Normalize `undefined` results to `null`
+    - Method dispatch safety: reject `rpc.`-prefixed, `Object.prototype` members, non-functions
+14. Extend `processRpc` for batch support (per-item try/catch wrapping errors into JSON-RPC error responses, then `Promise.all` for concurrency)
+15. Implement notification handling: detect via `!("id" in request)`, not nullish check. Single notification → `null`. All-notification batch → `null`.
 16. Implement all spec-required error responses
+17. Implement `handleRpc` as thin HTTP wrapper over `processRpc` (read body, parse JSON, map `null` to 204, otherwise 200 with JSON body)
 
 ### Phase 4: Client Implementation
-17. Implement `createRequest`, `isJsonRpcResponse`, `RpcError`
-18. Implement Proxy-based client with auto-batching (`setTimeout(0)` flush)
-19. Implement response dispatch (match by ID, handle missing responses, ignore unknown IDs)
-20. Implement `notify` proxy
-21. Implement fetch error handling (network failures → reject all batch promises)
+18. Implement `createRequest`, `isJsonRpcResponse`, `RpcError`
+19. Implement default fetch-based `RpcTransport`
+20. Implement Proxy-based client with auto-batching (`setTimeout(0)` flush), calling transport to send
+21. Implement response dispatch (match by ID, handle missing responses, reject on mismatched ID for single requests, ignore unknown IDs in batches)
+22. Implement `notify` proxy
+23. Implement transport error handling (transport rejects → all batch promises reject)
 
 ### Phase 5: Polish
-22. Package exports configuration (`./client` and `./server` entry points)
-23. Final pass on any remaining edge cases from test failures
+24. Package exports configuration (`./client` and `./server` entry points)
+25. Final pass on any remaining edge cases from test failures
 
 ## Testing Strategy
 
@@ -250,14 +309,15 @@ src/
     property.test.ts     — property-based / fuzz tests
 ```
 
-**E2E approach:** Use a simple in-memory transport (function that calls handleRpc directly) for integration tests. Use a real HTTP server (node built-in or vitest's) for true e2e tests.
+**E2E approach:** Use `processRpc` directly as an in-memory transport for integration tests (client transport calls `processRpc` instead of making HTTP requests). Use a real HTTP server (node built-in or vitest's) for true e2e tests.
 
 ## Key Files to Reference During Implementation
 
-- `repos/typed-rpc/src/client.ts` — Proxy pattern, `createRequest`, `isJsonRpcResponse`, `RpcError`, `fetchTransport`
-- `repos/typed-rpc/src/server.ts` — `handleRpc`, `isJsonRpcRequest`, error extraction
-- `repos/typed-rpc/src/types.ts` — Wire format types
-- `repos/capnweb/src/batch.ts` — `BatchClientTransport` (`setTimeout(0)` batching pattern)
+- `/Users/jeremymorrell/workspace/typed-rpc/src/client.ts` — Proxy pattern, `createRequest`, `isJsonRpcResponse`, `RpcError`, `fetchTransport`
+- `/Users/jeremymorrell/workspace/typed-rpc/src/server.ts` — `handleRpc`, `isJsonRpcRequest`, error extraction
+- `/Users/jeremymorrell/workspace/typed-rpc/src/types.ts` — Wire format types
+- `/Users/jeremymorrell/workspace/capnweb/src/batch.ts` — `BatchClientTransport` (`setTimeout(0)` batching pattern)
+- `/Users/jeremymorrell/workspace/capnweb/src/serialize.ts` — `Object.prototype` denylist pattern (lines 523-540)
 - `specification.md` — JSON-RPC 2.0 spec
 - `/Users/jeremymorrell/workspace/stacks/app/src/magpie-service.ts` — Example service interface pattern (TS interface)
 - `/Users/jeremymorrell/workspace/stacks/app/src/server/lib/api/jsonrpc.ts` — Example service class pattern (class implements interface, context via constructor)
