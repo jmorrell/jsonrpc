@@ -33,11 +33,7 @@ function createInMemoryTransport(service: any): RpcTransport {
   return async (body: string) => {
     const parsed = JSON.parse(body);
     const result = await processRpc(parsed, service);
-    // processRpc returns null for notifications-only
-    // The transport needs to return valid JSON
-    if (result === null) {
-      return JSON.stringify([]);
-    }
+    if (result === null) return "";
     return JSON.stringify(result);
   };
 }
