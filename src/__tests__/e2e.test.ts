@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { rpcClient, RpcError } from "../client.js";
-import { processRpc } from "../server.js";
+import { processRpc, handleRpc } from "../server.js";
 import type { RpcTransport } from "../types.js";
 
 // Service definition
@@ -107,5 +107,41 @@ describe("e2e: client → server round trip", () => {
     } catch (err) {
       expect((err as RpcError).code).toBe(-32601);
     }
+  });
+});
+
+// Transport that goes through handleRpc (HTTP semantics: 204 for notifications)
+function createHttpTransport(service: any): RpcTransport {
+  return async (body: string) => {
+    const request = new Request("http://localhost/rpc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    });
+    const response = await handleRpc(request, service);
+    return response.text();
+  };
+}
+
+describe("e2e: client → handleRpc (HTTP transport)", () => {
+  it("notification resolves successfully over HTTP 204", async () => {
+    const logFn = vi.fn();
+    const svc = { ...calcService, logEvent: logFn };
+    const transport = createHttpTransport(svc);
+    const client = rpcClient<CalcService>({ transport });
+    await client.notify.logEvent("page_view");
+    expect(logFn).toHaveBeenCalledWith("page_view");
+  });
+
+  it("batch of only notifications resolves over HTTP 204", async () => {
+    const logFn = vi.fn();
+    const svc = { ...calcService, logEvent: logFn };
+    const transport = createHttpTransport(svc);
+    const client = rpcClient<CalcService>({ transport });
+    await Promise.all([
+      client.notify.logEvent("event1"),
+      client.notify.logEvent("event2"),
+    ]);
+    expect(logFn).toHaveBeenCalledTimes(2);
   });
 });

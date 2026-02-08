@@ -164,6 +164,15 @@ export function rpcClient<T extends object>(
 
     try {
       const responseText = await transport(body);
+
+      // Empty response (e.g. HTTP 204 for notification-only requests)
+      if (!responseText) {
+        for (const n of notifications) {
+          n.resolve();
+        }
+        return;
+      }
+
       const parsed = JSON.parse(responseText);
 
       // Resolve all notifications (they succeeded because transport didn't throw)
