@@ -96,7 +96,7 @@ Unchanged. Calls in the same event loop tick are batched. Every call has an `id`
 
 ### What happens if a third-party client sends a notification?
 
-The server still detects notifications per spec (`!("id" in body)`) and handles them: executes the method, returns no response. This maintains compatibility. But our client never sends them, and the API doesn't surface them.
+The server ignores it. Since we have no notification concept, there are no notification handlers to dispatch to, and executing a method silently — with no way to report errors back — contradicts the design principle that every call should get feedback. The server logs a warning via `onError` and produces no response (per spec, servers MUST NOT reply to notifications). Third-party clients that want to call our server should send proper requests with an `id`.
 
 ## Layer 2: Bidirectional (WebSocket / MessagePort / etc.)
 
@@ -289,11 +289,10 @@ The `.notify` proxy is removed. Any code using it should call the method directl
 - Error codes (-32700, -32600, -32601, -32602, -32603)
 - Batching (array of requests → array of responses)
 - `id` matching for response dispatch
-- Server-side notification handling (for third-party client compatibility)
 
 ## What We Don't Use
 
-- Client-sent notifications (no `id` omission)
+- Notifications entirely — not sent by our client, not executed by our server (incoming notifications are ignored with a warning)
 - Named params (by-position only)
 - SSE transport (unidirectional, can't carry responses)
 
