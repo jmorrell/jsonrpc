@@ -4,14 +4,14 @@ import { processRpc, handleRpc } from "../server.js";
 import type { RpcTransport } from "../types.js";
 
 // Service definition
-interface CalcService {
+type CalcService = {
   add(a: number, b: number): number;
   subtract(a: number, b: number): number;
   multiply(a: number, b: number): number;
   greet(name: string): string;
   throwError(): never;
   logEvent(event: string): void;
-}
+};
 
 // Service implementation
 const calcService: CalcService = {

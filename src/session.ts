@@ -1,3 +1,5 @@
+// pattern: Imperative Shell
+
 import {
   processRpc,
   isJsonRpcResponse,

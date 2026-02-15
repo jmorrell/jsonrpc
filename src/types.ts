@@ -1,23 +1,24 @@
+// pattern: Functional Core
 // JSON-RPC 2.0 wire format types
 
-export interface JsonRpcRequest {
+export type JsonRpcRequest = {
   jsonrpc: "2.0";
   id?: string | number | null;
   method: string;
   params?: unknown[];
-}
+};
 
-export interface JsonRpcSuccessResponse {
+export type JsonRpcSuccessResponse = {
   jsonrpc: "2.0";
   id: string | number | null;
   result: unknown;
-}
+};
 
-export interface JsonRpcErrorResponse {
+export type JsonRpcErrorResponse = {
   jsonrpc: "2.0";
   id: string | number | null;
   error: { code: number; message: string; data?: unknown };
-}
+};
 
 export type JsonRpcResponse = JsonRpcSuccessResponse | JsonRpcErrorResponse;
 

@@ -1,3 +1,5 @@
+// pattern: Functional Core
+
 import type {
   JsonRpcRequest,
   JsonRpcResponse,
@@ -11,10 +13,10 @@ import type {
  */
 export function isJsonRpcResponse(res: unknown): res is JsonRpcResponse {
   if (typeof res !== "object" || res === null) return false;
-  if (!("jsonrpc" in res) || (res as any).jsonrpc !== "2.0") return false;
+  if (!("jsonrpc" in res) || (res as any).jsonrpc !== "2.0") return false; // narrowing unknown in type guard
   if (
     !("id" in res) ||
-    (typeof (res as any).id !== "string" &&
+    (typeof (res as any).id !== "string" && // narrowing unknown in type guard
       typeof (res as any).id !== "number" &&
       (res as any).id !== null)
   )
@@ -41,8 +43,8 @@ export function isJsonRpcResponse(res: unknown): res is JsonRpcResponse {
  * Error class thrown when a remote method returns a JSON-RPC error.
  */
 export class RpcError extends Error {
-  code: number;
-  data?: unknown;
+  readonly code: number;
+  readonly data?: unknown;
 
   constructor(message: string, code: number, data?: unknown) {
     super(message);
@@ -123,19 +125,19 @@ export function extractError(err: unknown): {
     typeof err === "object" &&
     err !== null &&
     "code" in err &&
-    typeof (err as any).code === "number"
-      ? (err as any).code
+    typeof (err as any).code === "number" // narrowing unknown in type guard
+      ? (err as any).code // narrowing unknown in type guard
       : -32000;
   const message =
     typeof err === "object" &&
     err !== null &&
     "message" in err &&
-    typeof (err as any).message === "string"
-      ? (err as any).message
+    typeof (err as any).message === "string" // narrowing unknown in type guard
+      ? (err as any).message // narrowing unknown in type guard
       : "";
   const data =
     typeof err === "object" && err !== null && "data" in err
-      ? (err as any).data
+      ? (err as any).data // narrowing unknown in type guard
       : undefined;
   return { code, message, data };
 }
@@ -145,7 +147,7 @@ export function extractError(err: unknown): {
  */
 export async function processSingleRequest(
   body: unknown,
-  service: any,
+  service: any, // any: dynamic dispatch with arbitrary method signatures
   options?: RpcHandlerOptions
 ): Promise<JsonRpcResponse | null> {
   if (!isJsonRpcRequest(body)) {

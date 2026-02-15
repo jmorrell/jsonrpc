@@ -1,3 +1,5 @@
+// pattern: Imperative Shell
+
 import type { RpcHandlerOptions } from "./types.js";
 import { errorResponse, processRpc } from "./core.js";
 
