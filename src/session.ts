@@ -8,7 +8,6 @@ import type {
   RpcMessageTransport,
   RpcSessionOptions,
   RpcSession,
-  JsonRpcResponse,
   JsonRpcErrorResponse,
   RpcHandlerOptions,
 } from "./types.js";

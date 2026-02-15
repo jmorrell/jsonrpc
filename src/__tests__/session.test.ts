@@ -101,43 +101,72 @@ describe("AC2.3: Simultaneous calls without ID collision", () => {
   it("initiator uses positive IDs, acceptor uses negative IDs", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
-    const idsSeenInRequests = new Set<number>();
-    const initiatorService = {
-      recordId(id: number): Promise<void> {
-        idsSeenInRequests.add(id);
-        return Promise.resolve();
+    // Spy on both transports to capture actual wire messages
+    const sendSpyA = vi.spyOn(transportA, "send");
+    const sendSpyB = vi.spyOn(transportB, "send");
+
+    // Common service with methods both sides can call
+    const service = {
+      add(a: number, b: number): Promise<number> {
+        return Promise.resolve(a + b);
+      },
+      multiply(a: number, b: number): Promise<number> {
+        return Promise.resolve(a * b);
       },
     };
 
-    const acceptorService = {
-      recordId(id: number): Promise<void> {
-        idsSeenInRequests.add(id);
-        return Promise.resolve();
-      },
-    };
+    const sessionA = rpcSession(transportA, service, { role: "initiator" });
+    const sessionB = rpcSession(transportB, service, { role: "acceptor" });
 
-    const sessionA = rpcSession(transportA, initiatorService, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
-
-    // Initiator calls: should generate IDs 1, 2, 3...
+    // Initiator calls: should generate wire-level IDs 1, 2, 3...
     const initiatorCalls = [
-      (sessionA.remote as any).recordId(1),
-      (sessionA.remote as any).recordId(2),
-      (sessionA.remote as any).recordId(3),
+      (sessionA.remote as any).add(1, 2),
+      (sessionA.remote as any).add(3, 4),
+      (sessionA.remote as any).add(5, 6),
     ];
 
-    // Acceptor calls: should generate IDs -1, -2, -3...
+    // Acceptor calls: should generate wire-level IDs -1, -2, -3...
     const acceptorCalls = [
-      (sessionB.remote as any).recordId(-1),
-      (sessionB.remote as any).recordId(-2),
-      (sessionB.remote as any).recordId(-3),
+      (sessionB.remote as any).multiply(2, 3),
+      (sessionB.remote as any).multiply(4, 5),
+      (sessionB.remote as any).multiply(6, 7),
     ];
 
     await Promise.all([...initiatorCalls, ...acceptorCalls]);
 
-    // Verify initiator IDs are positive and acceptor IDs are negative
-    const ids = Array.from(idsSeenInRequests).sort((a, b) => a - b);
-    expect(ids).toEqual([-3, -2, -1, 1, 2, 3]);
+    // Extract wire-level IDs from captured messages
+    const initiatorRequestIds: number[] = [];
+    const acceptorRequestIds: number[] = [];
+
+    // Filter sendSpyA for requests (messages with "method" field)
+    for (const call of sendSpyA.mock.calls) {
+      const message = call[0];
+      const parsed = JSON.parse(message);
+      if (parsed.method) {
+        initiatorRequestIds.push(parsed.id);
+      }
+    }
+
+    // Filter sendSpyB for requests (messages with "method" field)
+    for (const call of sendSpyB.mock.calls) {
+      const message = call[0];
+      const parsed = JSON.parse(message);
+      if (parsed.method) {
+        acceptorRequestIds.push(parsed.id);
+      }
+    }
+
+    // Verify initiator IDs are all positive
+    expect(initiatorRequestIds.every((id) => id > 0)).toBe(true);
+    // Verify acceptor IDs are all negative
+    expect(acceptorRequestIds.every((id) => id < 0)).toBe(true);
+    // Verify no duplicates within initiator set
+    expect(new Set(initiatorRequestIds).size).toBe(initiatorRequestIds.length);
+    // Verify no duplicates within acceptor set
+    expect(new Set(acceptorRequestIds).size).toBe(acceptorRequestIds.length);
+    // Verify no collisions between both sets
+    const allIds = [...initiatorRequestIds, ...acceptorRequestIds];
+    expect(new Set(allIds).size).toBe(allIds.length);
 
     sessionA.close();
     sessionB.close();
@@ -146,12 +175,13 @@ describe("AC2.3: Simultaneous calls without ID collision", () => {
   it("no ID collisions when both sides call simultaneously", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
-    const recordedIds = new Array<number>();
+    // Spy on both transports to capture actual wire messages
+    const sendSpyA = vi.spyOn(transportA, "send");
+    const sendSpyB = vi.spyOn(transportB, "send");
 
     const service = {
-      echo(id: number): Promise<number> {
-        recordedIds.push(id);
-        return Promise.resolve(id);
+      echo(value: number): Promise<number> {
+        return Promise.resolve(value);
       },
     };
 
@@ -167,8 +197,31 @@ describe("AC2.3: Simultaneous calls without ID collision", () => {
 
     await Promise.all(calls);
 
-    // All calls should succeed with no collisions
-    expect(recordedIds.length).toBe(10);
+    // Extract wire-level IDs from captured messages
+    const wireIds: (number | string)[] = [];
+
+    // Filter sendSpyA for requests (messages with "method" field)
+    for (const call of sendSpyA.mock.calls) {
+      const message = call[0];
+      const parsed = JSON.parse(message);
+      if (parsed.method) {
+        wireIds.push(parsed.id);
+      }
+    }
+
+    // Filter sendSpyB for requests (messages with "method" field)
+    for (const call of sendSpyB.mock.calls) {
+      const message = call[0];
+      const parsed = JSON.parse(message);
+      if (parsed.method) {
+        wireIds.push(parsed.id);
+      }
+    }
+
+    // All wire IDs should be unique (no collisions)
+    expect(new Set(wireIds).size).toBe(wireIds.length);
+    // Should have exactly 10 requests (5 from each side)
+    expect(wireIds.length).toBe(10);
   });
 });
 
