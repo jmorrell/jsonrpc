@@ -48,11 +48,7 @@ export type RpcProtocolErrorCode =
 export class RpcProtocolError extends Error {
   readonly code: RpcProtocolErrorCode;
 
-  constructor(
-    code: RpcProtocolErrorCode,
-    message: string,
-    options?: { cause?: unknown },
-  ) {
+  constructor(code: RpcProtocolErrorCode, message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = "RpcProtocolError";
     this.code = code;

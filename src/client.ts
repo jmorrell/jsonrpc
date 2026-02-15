@@ -1,8 +1,4 @@
-import type {
-  JsonRpcRequest,
-  JsonRpcResponse,
-  PromisifyMethods,
-} from "./core.js";
+import type { JsonRpcRequest, JsonRpcResponse, PromisifyMethods } from "./core.js";
 import { isJsonRpcResponse, RpcError, createRequest } from "./core.js";
 
 export { isJsonRpcResponse, RpcError, createRequest } from "./core.js";
@@ -12,10 +8,7 @@ export type RpcTransport = (body: string) => Promise<string>;
 
 export type RpcFetchOptions = {
   url: string;
-  getHeaders?():
-    | Record<string, string>
-    | Promise<Record<string, string>>
-    | undefined;
+  getHeaders?(): Record<string, string> | Promise<Record<string, string>> | undefined;
 };
 
 export type RpcClientOptions =
@@ -61,9 +54,7 @@ const RESERVED_PROPS = new Set(["then", "toJSON"]);
 /**
  * Create a typed JSON-RPC 2.0 client with auto-batching.
  */
-export function rpcClient<T extends object>(
-  options: RpcClientOptions,
-): RpcClient<T> {
+export function rpcClient<T extends object>(options: RpcClientOptions): RpcClient<T> {
   let transport: RpcTransport;
 
   if (typeof options === "string") {
@@ -97,9 +88,7 @@ export function rpcClient<T extends object>(
     if (requests.length === 0) return;
 
     const isSingleRequest = requests.length === 1;
-    const body = isSingleRequest
-      ? JSON.stringify(requests[0])
-      : JSON.stringify(requests);
+    const body = isSingleRequest ? JSON.stringify(requests[0]) : JSON.stringify(requests);
 
     try {
       const responseText = await transport(body);
@@ -114,9 +103,7 @@ export function rpcClient<T extends object>(
           return;
         }
         if (parsed.id !== call.id) {
-          call.reject(
-            new RpcError("Response ID does not match request ID", -32000),
-          );
+          call.reject(new RpcError("Response ID does not match request ID", -32000));
           return;
         }
         if ("error" in parsed) {
@@ -138,9 +125,7 @@ export function rpcClient<T extends object>(
         }
 
         if (!Array.isArray(parsed)) {
-          const err = new TypeError(
-            "Expected array response for batch request",
-          );
+          const err = new TypeError("Expected array response for batch request");
           for (const call of calls) {
             call.reject(err);
           }
@@ -159,9 +144,7 @@ export function rpcClient<T extends object>(
         for (const call of calls) {
           const res = responseMap.get(call.id);
           if (!res) {
-            call.reject(
-              new RpcError("No response received for request", -32000),
-            );
+            call.reject(new RpcError("No response received for request", -32000));
             continue;
           }
           if ("error" in res) {

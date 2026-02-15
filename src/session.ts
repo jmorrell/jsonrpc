@@ -49,9 +49,7 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
   let closed = false;
 
   // Build RpcHandlerOptions to pass onError through to processRpc
-  const handlerOptions: RpcHandlerOptions | undefined = onError
-    ? { onError }
-    : undefined;
+  const handlerOptions: RpcHandlerOptions | undefined = onError ? { onError } : undefined;
 
   // --- Incoming message handler ---
   transport.onMessage((message: string) => {
@@ -60,22 +58,13 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
       parsed = JSON.parse(message);
     } catch (err) {
       onError?.(
-        new RpcProtocolError(
-          "PARSE_ERROR",
-          "Failed to parse JSON-RPC message",
-          { cause: err },
-        ),
+        new RpcProtocolError("PARSE_ERROR", "Failed to parse JSON-RPC message", { cause: err }),
       );
       return;
     }
 
     if (typeof parsed !== "object" || parsed === null) {
-      onError?.(
-        new RpcProtocolError(
-          "INVALID_MESSAGE",
-          "Received non-object JSON-RPC message",
-        ),
-      );
+      onError?.(new RpcProtocolError("INVALID_MESSAGE", "Received non-object JSON-RPC message"));
       return;
     }
 
@@ -94,12 +83,7 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
     }
 
     // Neither request nor response
-    onError?.(
-      new RpcProtocolError(
-        "UNROUTABLE_MESSAGE",
-        "Received unroutable JSON-RPC message",
-      ),
-    );
+    onError?.(new RpcProtocolError("UNROUTABLE_MESSAGE", "Received unroutable JSON-RPC message"));
   });
 
   // --- Handle incoming request ---
@@ -112,11 +96,7 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
       transport.send(JSON.stringify(response));
     } catch (err) {
       onError?.(
-        new RpcProtocolError(
-          "SEND_FAILED",
-          "Failed to send JSON-RPC response",
-          { cause: err },
-        ),
+        new RpcProtocolError("SEND_FAILED", "Failed to send JSON-RPC response", { cause: err }),
       );
     }
   }
@@ -124,22 +104,14 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
   // --- Handle incoming response ---
   function handleIncomingResponse(parsed: unknown): void {
     if (!isJsonRpcResponse(parsed)) {
-      onError?.(
-        new RpcProtocolError(
-          "INVALID_RESPONSE",
-          "Received invalid JSON-RPC response",
-        ),
-      );
+      onError?.(new RpcProtocolError("INVALID_RESPONSE", "Received invalid JSON-RPC response"));
       return;
     }
 
     const id = parsed.id;
     if (id === null || id === undefined) {
       onError?.(
-        new RpcProtocolError(
-          "NULL_RESPONSE_ID",
-          "Received response with null/undefined ID",
-        ),
+        new RpcProtocolError("NULL_RESPONSE_ID", "Received response with null/undefined ID"),
       );
       return;
     }
@@ -147,10 +119,7 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
     const pending = pendingCalls.get(id);
     if (!pending) {
       onError?.(
-        new RpcProtocolError(
-          "UNKNOWN_RESPONSE_ID",
-          `Received response for unknown ID: ${id}`,
-        ),
+        new RpcProtocolError("UNKNOWN_RESPONSE_ID", `Received response for unknown ID: ${id}`),
       );
       return;
     }
