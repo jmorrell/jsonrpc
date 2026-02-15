@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { rpcSession, RpcError } from "../session.js";
 import { createLinkedTransports } from "./test-helpers.js";
+import type { RpcMessageTransport } from "../types.js";
 
 // --- AC2.1: Initiator calls method on acceptor's service ---
 
@@ -760,5 +761,333 @@ describe("Session behavior", () => {
     } catch (err) {
       expect((err as Error).message).toContain("Connection closed");
     }
+  });
+});
+
+// --- Error resilience tests (AC4.1-AC4.5) ---
+
+describe("session error resilience", () => {
+  // AC4.1: Malformed JSON
+  describe("AC4.1: Malformed JSON", () => {
+    it("malformed JSON is logged via onError and session continues", async () => {
+      const [transportA, transportB] = createLinkedTransports();
+
+      const errors: unknown[] = [];
+      const sessionA = rpcSession(transportA, {}, {
+        role: "initiator",
+        onError(err) {
+          errors.push(err);
+        },
+      });
+
+      const acceptorService = {
+        echo(value: string): Promise<string> {
+          return Promise.resolve(value);
+        },
+      };
+
+      const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+
+      // Inject malformed JSON
+      const malformedJSON = "not json{";
+      transportB.send(malformedJSON);
+
+      // Wait for error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify error was logged
+      expect(errors.length).toBe(1);
+      expect(errors[0]).toBeInstanceOf(SyntaxError);
+
+      // Verify session still works - make a successful call
+      const result = await (sessionA.remote as any).echo("test");
+      expect(result).toBe("test");
+
+      sessionA.close();
+      sessionB.close();
+    });
+  });
+
+  // AC4.2: Unknown response ID
+  describe("AC4.2: Unknown response ID", () => {
+    it("response with unknown ID is logged via onError and session continues", async () => {
+      const [transportA, transportB] = createLinkedTransports();
+
+      const errors: unknown[] = [];
+      const sessionA = rpcSession(transportA, {}, {
+        role: "initiator",
+        onError(err) {
+          errors.push(err);
+        },
+      });
+
+      const acceptorService = {
+        echo(value: string): Promise<string> {
+          return Promise.resolve(value);
+        },
+      };
+
+      const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+
+      // Inject a response with unknown ID
+      const unknownResponseJSON = JSON.stringify({
+        jsonrpc: "2.0",
+        id: 99999,
+        result: "ghost",
+      });
+      transportB.send(unknownResponseJSON);
+
+      // Wait for error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify error was logged
+      expect(errors.length).toBe(1);
+      expect(errors[0]).toBeInstanceOf(Error);
+      expect((errors[0] as Error).message).toContain("unknown ID");
+
+      // Verify session still works - make a successful call
+      const result = await (sessionA.remote as any).echo("test");
+      expect(result).toBe("test");
+
+      sessionA.close();
+      sessionB.close();
+    });
+  });
+
+  // AC4.3: Unroutable message
+  describe("AC4.3: Unroutable message", () => {
+    it("message that is neither request nor response is logged via onError and session continues", async () => {
+      const [transportA, transportB] = createLinkedTransports();
+
+      const errors: unknown[] = [];
+      const sessionA = rpcSession(transportA, {}, {
+        role: "initiator",
+        onError(err) {
+          errors.push(err);
+        },
+      });
+
+      const acceptorService = {
+        echo(value: string): Promise<string> {
+          return Promise.resolve(value);
+        },
+      };
+
+      const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+
+      // Inject a message that is neither request nor response
+      const unroutableJSON = JSON.stringify({
+        jsonrpc: "2.0",
+        data: "something",
+      });
+      transportB.send(unroutableJSON);
+
+      // Wait for error to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify error was logged
+      expect(errors.length).toBe(1);
+      expect(errors[0]).toBeInstanceOf(Error);
+      expect((errors[0] as Error).message).toContain("unroutable");
+
+      // Verify session still works - make a successful call
+      const result = await (sessionA.remote as any).echo("test");
+      expect(result).toBe("test");
+
+      sessionA.close();
+      sessionB.close();
+    });
+  });
+
+  // AC4.4: Send failure
+  describe("AC4.4: Send failure", () => {
+    it("transport.send() throwing rejects only that specific call, not the whole session", async () => {
+      // Create a custom transport that fails on the first call only
+      let sendCount = 0;
+      let messageHandlerA: ((message: string) => void) | null = null;
+      let closeHandlerA: ((reason?: Error) => void) | null = null;
+
+      const transportA: RpcMessageTransport = {
+        send(message: string) {
+          sendCount++;
+          if (sendCount === 1) {
+            // First call fails
+            throw new Error("Send failed on first call");
+          }
+          messageHandlerB?.(message);
+        },
+        onMessage(handler) {
+          messageHandlerA = handler;
+        },
+        onClose(handler) {
+          closeHandlerA = handler;
+        },
+        close() {
+          closeHandlerA?.();
+        },
+      };
+
+      let messageHandlerB: ((message: string) => void) | null = null;
+      let closeHandlerB: ((reason?: Error) => void) | null = null;
+
+      const transportB: RpcMessageTransport = {
+        send(message: string) {
+          messageHandlerA?.(message);
+        },
+        onMessage(handler) {
+          messageHandlerB = handler;
+        },
+        onClose(handler) {
+          closeHandlerB = handler;
+        },
+        close() {
+          closeHandlerB?.();
+        },
+      };
+
+      const acceptorService = {
+        echo(value: string): Promise<string> {
+          return Promise.resolve(value);
+        },
+      };
+
+      const sessionA = rpcSession(transportA, {}, { role: "initiator" });
+      const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+
+      // First call should fail because send() throws
+      try {
+        await (sessionA.remote as any).echo("first");
+        expect.fail("First call should have rejected");
+      } catch (err) {
+        expect((err as Error).message).toBe("Send failed on first call");
+      }
+
+      // Second call should succeed because send() no longer throws
+      const result = await (sessionA.remote as any).echo("second");
+      expect(result).toBe("second");
+
+      // Session is still alive
+      const result2 = await (sessionA.remote as any).echo("third");
+      expect(result2).toBe("third");
+
+      sessionA.close();
+      sessionB.close();
+    });
+  });
+
+  // AC4.5: Incoming notification
+  describe("AC4.5: Incoming notification", () => {
+    it("incoming notification is not executed and is logged via onError", async () => {
+      const [transportA, transportB] = createLinkedTransports();
+
+      const errors: unknown[] = [];
+      let handlerWasCalled = false;
+
+      const initiatorService = {
+        testMethod(): Promise<void> {
+          handlerWasCalled = true;
+          return Promise.resolve();
+        },
+      };
+
+      const sessionA = rpcSession(transportA, initiatorService, {
+        role: "initiator",
+        onError(err) {
+          errors.push(err);
+        },
+      });
+
+      const sessionB = rpcSession(transportB, {}, {
+        role: "acceptor",
+        onError(err) {
+          errors.push(err);
+        },
+      });
+
+      // Inject a notification (request without id) into session A
+      const notificationJSON = JSON.stringify({
+        jsonrpc: "2.0",
+        method: "testMethod",
+      });
+      transportB.send(notificationJSON);
+
+      // Wait for notification to be processed
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify handler was NOT called
+      expect(handlerWasCalled).toBe(false);
+
+      // Verify error was logged (from initiator's onError)
+      const initiatorErrors = errors;
+      expect(initiatorErrors.length).toBeGreaterThan(0);
+      expect(initiatorErrors.some((err) =>
+        (err as Error).message?.includes("notification")
+      )).toBe(true);
+
+      sessionA.close();
+      sessionB.close();
+    });
+  });
+
+  // Additional comprehensive test: Multiple errors don't crash session
+  it("multiple errors in sequence don't crash session", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const errorLog: unknown[] = [];
+    const sessionA = rpcSession(transportA, {}, {
+      role: "initiator",
+      onError(err) {
+        errorLog.push(err);
+      },
+    });
+
+    const acceptorService = {
+      echo(value: string): Promise<string> {
+        return Promise.resolve(value);
+      },
+    };
+
+    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+
+    // Inject multiple errors
+    // 1. Malformed JSON
+    transportB.send("not json{");
+
+    // 2. Unknown response ID
+    transportB.send(JSON.stringify({
+      jsonrpc: "2.0",
+      id: 88888,
+      result: "unknown",
+    }));
+
+    // 3. Unroutable message
+    transportB.send(JSON.stringify({
+      jsonrpc: "2.0",
+      bogus: "field",
+    }));
+
+    // 4. Notification
+    transportB.send(JSON.stringify({
+      jsonrpc: "2.0",
+      method: "echo",
+    }));
+
+    // Wait for all errors to be processed
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Verify errors were logged
+    expect(errorLog.length).toBeGreaterThanOrEqual(3); // At least syntax, unknown ID, unroutable
+
+    // Verify session still works - make multiple successful calls
+    const result1 = await (sessionA.remote as any).echo("recovery1");
+    const result2 = await (sessionA.remote as any).echo("recovery2");
+    const result3 = await (sessionA.remote as any).echo("recovery3");
+
+    expect(result1).toBe("recovery1");
+    expect(result2).toBe("recovery2");
+    expect(result3).toBe("recovery3");
+
+    sessionA.close();
+    sessionB.close();
   });
 });
