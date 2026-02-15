@@ -59,12 +59,13 @@ describe("e2e: client → server round trip", () => {
     expect(c).toBe(20);
   });
 
-  it("notifications: server executes, no response expected", async () => {
+  it("void-returning method resolves Promise<void>", async () => {
     const logFn = vi.fn();
     const svc = { ...calcService, logEvent: logFn };
     const transport = createInMemoryTransport(svc);
-    const client = rpcClient<CalcService>({ transport });
-    await client.notify.logEvent("page_view");
+    type Svc = typeof calcService;
+    const client = rpcClient<Svc>({ transport });
+    await client.logEvent("page_view");
     expect(logFn).toHaveBeenCalledWith("page_view");
   });
 
@@ -106,38 +107,3 @@ describe("e2e: client → server round trip", () => {
   });
 });
 
-// Transport that goes through handleRpc (HTTP semantics: 204 for notifications)
-function createHttpTransport(service: any): RpcTransport {
-  return async (body: string) => {
-    const request = new Request("http://localhost/rpc", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    });
-    const response = await handleRpc(request, service);
-    return response.text();
-  };
-}
-
-describe("e2e: client → handleRpc (HTTP transport)", () => {
-  it("notification resolves successfully over HTTP 204", async () => {
-    const logFn = vi.fn();
-    const svc = { ...calcService, logEvent: logFn };
-    const transport = createHttpTransport(svc);
-    const client = rpcClient<CalcService>({ transport });
-    await client.notify.logEvent("page_view");
-    expect(logFn).toHaveBeenCalledWith("page_view");
-  });
-
-  it("batch of only notifications resolves over HTTP 204", async () => {
-    const logFn = vi.fn();
-    const svc = { ...calcService, logEvent: logFn };
-    const transport = createHttpTransport(svc);
-    const client = rpcClient<CalcService>({ transport });
-    await Promise.all([
-      client.notify.logEvent("event1"),
-      client.notify.logEvent("event2"),
-    ]);
-    expect(logFn).toHaveBeenCalledTimes(2);
-  });
-});

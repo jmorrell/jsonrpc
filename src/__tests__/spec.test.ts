@@ -177,7 +177,7 @@ describe("spec examples (adapted for by-position params only)", () => {
       { jsonrpc: "2.0", method: "foobar" },
       service
     );
-    // foobar exists, so it executes and returns null
+    // notification — ignored without executing, returns null
     expect(result).toBeNull();
   });
 
