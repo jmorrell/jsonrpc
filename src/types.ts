@@ -59,3 +59,22 @@ export type RpcClient<T extends object> = PromisifyMethods<T>;
 export type RpcHandlerOptions = {
   onError?: (err: unknown) => void;
 };
+
+// Message-oriented transport for bidirectional connections
+export type RpcMessageTransport = {
+  send(message: string): void;
+  onMessage(handler: (message: string) => void): void;
+  onClose(handler: (reason?: Error) => void): void;
+  close(): void;
+};
+
+// Session types
+export type RpcSessionOptions = {
+  role?: 'initiator' | 'acceptor'; // default: 'initiator'
+  onError?: (err: unknown) => void;
+};
+
+export type RpcSession<TRemote extends object, TLocal extends object> = {
+  remote: PromisifyMethods<TRemote>;
+  close(): void;
+};
