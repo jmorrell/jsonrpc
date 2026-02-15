@@ -46,10 +46,7 @@ export type RpcClientOptions =
 
 export type RpcFetchOptions = {
   url: string;
-  getHeaders?():
-    | Record<string, string>
-    | Promise<Record<string, string>>
-    | undefined;
+  getHeaders?(): Record<string, string> | Promise<Record<string, string>> | undefined;
 };
 
 // Client proxy type: promisified methods only
@@ -57,15 +54,15 @@ export type RpcClient<T extends object> = PromisifyMethods<T>;
 
 // Protocol error codes for onError callbacks
 export type RpcProtocolErrorCode =
-  | "PARSE_ERROR"           // malformed JSON on transport
-  | "INVALID_MESSAGE"       // non-object message received
-  | "UNROUTABLE_MESSAGE"    // message is neither request nor response
-  | "INVALID_RESPONSE"      // response fails structural validation
-  | "NULL_RESPONSE_ID"      // response has null/undefined ID
-  | "UNKNOWN_RESPONSE_ID"   // no pending call for response ID
+  | "PARSE_ERROR" // malformed JSON on transport
+  | "INVALID_MESSAGE" // non-object message received
+  | "UNROUTABLE_MESSAGE" // message is neither request nor response
+  | "INVALID_RESPONSE" // response fails structural validation
+  | "NULL_RESPONSE_ID" // response has null/undefined ID
+  | "UNKNOWN_RESPONSE_ID" // no pending call for response ID
   | "NOTIFICATION_RECEIVED" // unsupported notification received
-  | "HANDLER_ERROR"         // service method threw
-  | "SEND_FAILED";          // transport.send threw
+  | "HANDLER_ERROR" // service method threw
+  | "SEND_FAILED"; // transport.send threw
 
 export class RpcProtocolError extends Error {
   readonly code: RpcProtocolErrorCode;
@@ -94,7 +91,7 @@ export type RpcMessageTransport = {
 
 // Session types
 export type RpcSessionOptions = {
-  role?: 'initiator' | 'acceptor'; // default: 'initiator'
+  role?: "initiator" | "acceptor"; // default: 'initiator'
   onError?: (err: RpcProtocolError) => void;
 };
 

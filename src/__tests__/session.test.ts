@@ -774,12 +774,16 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(transportA, {}, {
-        role: "initiator",
-        onError(err) {
-          errors.push(err);
+      const sessionA = rpcSession(
+        transportA,
+        {},
+        {
+          role: "initiator",
+          onError(err) {
+            errors.push(err);
+          },
         },
-      });
+      );
 
       const acceptorService = {
         echo(value: string): Promise<string> {
@@ -817,12 +821,16 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(transportA, {}, {
-        role: "initiator",
-        onError(err) {
-          errors.push(err);
+      const sessionA = rpcSession(
+        transportA,
+        {},
+        {
+          role: "initiator",
+          onError(err) {
+            errors.push(err);
+          },
         },
-      });
+      );
 
       const acceptorService = {
         echo(value: string): Promise<string> {
@@ -864,12 +872,16 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(transportA, {}, {
-        role: "initiator",
-        onError(err) {
-          errors.push(err);
+      const sessionA = rpcSession(
+        transportA,
+        {},
+        {
+          role: "initiator",
+          onError(err) {
+            errors.push(err);
+          },
         },
-      });
+      );
 
       const acceptorService = {
         echo(value: string): Promise<string> {
@@ -1001,12 +1013,16 @@ describe("session error resilience", () => {
         },
       });
 
-      const sessionB = rpcSession(transportB, {}, {
-        role: "acceptor",
-        onError(err) {
-          errors.push(err);
+      const sessionB = rpcSession(
+        transportB,
+        {},
+        {
+          role: "acceptor",
+          onError(err) {
+            errors.push(err);
+          },
         },
-      });
+      );
 
       // Inject a notification (request without id) into session A
       const notificationJSON = JSON.stringify({
@@ -1024,7 +1040,9 @@ describe("session error resilience", () => {
       // Verify error was logged (from initiator's onError)
       const initiatorErrors = errors;
       expect(initiatorErrors.length).toBeGreaterThan(0);
-      const notifError = initiatorErrors.find((err) => err instanceof RpcProtocolError && err.code === "NOTIFICATION_RECEIVED");
+      const notifError = initiatorErrors.find(
+        (err) => err instanceof RpcProtocolError && err.code === "NOTIFICATION_RECEIVED",
+      );
       expect(notifError).toBeDefined();
       expect((notifError as RpcProtocolError).message).toContain("notification");
 
@@ -1039,14 +1057,22 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(transportA, {}, {
-        role: "initiator",
-        onError(err) {
-          errors.push(err);
+      const sessionA = rpcSession(
+        transportA,
+        {},
+        {
+          role: "initiator",
+          onError(err) {
+            errors.push(err);
+          },
         },
-      });
+      );
 
-      const sessionB = rpcSession(transportB, { echo: (v: string) => Promise.resolve(v) }, { role: "acceptor" });
+      const sessionB = rpcSession(
+        transportB,
+        { echo: (v: string) => Promise.resolve(v) },
+        { role: "acceptor" },
+      );
 
       // Inject a non-object JSON value (a plain string)
       transportB.send(JSON.stringify("just a string"));
@@ -1072,20 +1098,30 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(transportA, {}, {
-        role: "initiator",
-        onError(err) {
-          errors.push(err);
+      const sessionA = rpcSession(
+        transportA,
+        {},
+        {
+          role: "initiator",
+          onError(err) {
+            errors.push(err);
+          },
         },
-      });
+      );
 
-      const sessionB = rpcSession(transportB, { echo: (v: string) => Promise.resolve(v) }, { role: "acceptor" });
+      const sessionB = rpcSession(
+        transportB,
+        { echo: (v: string) => Promise.resolve(v) },
+        { role: "acceptor" },
+      );
 
       // Inject a response-like object that fails the type guard (missing jsonrpc version)
-      transportB.send(JSON.stringify({
-        id: 1,
-        result: "bad",
-      }));
+      transportB.send(
+        JSON.stringify({
+          id: 1,
+          result: "bad",
+        }),
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
@@ -1104,21 +1140,31 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(transportA, {}, {
-        role: "initiator",
-        onError(err) {
-          errors.push(err);
+      const sessionA = rpcSession(
+        transportA,
+        {},
+        {
+          role: "initiator",
+          onError(err) {
+            errors.push(err);
+          },
         },
-      });
+      );
 
-      const sessionB = rpcSession(transportB, { echo: (v: string) => Promise.resolve(v) }, { role: "acceptor" });
+      const sessionB = rpcSession(
+        transportB,
+        { echo: (v: string) => Promise.resolve(v) },
+        { role: "acceptor" },
+      );
 
       // Inject a response with null ID
-      transportB.send(JSON.stringify({
-        jsonrpc: "2.0",
-        id: null,
-        result: "orphan",
-      }));
+      transportB.send(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: null,
+          result: "orphan",
+        }),
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 10));
 
@@ -1136,12 +1182,16 @@ describe("session error resilience", () => {
     const [transportA, transportB] = createLinkedTransports();
 
     const errorLog: unknown[] = [];
-    const sessionA = rpcSession(transportA, {}, {
-      role: "initiator",
-      onError(err) {
-        errorLog.push(err);
+    const sessionA = rpcSession(
+      transportA,
+      {},
+      {
+        role: "initiator",
+        onError(err) {
+          errorLog.push(err);
+        },
       },
-    });
+    );
 
     const acceptorService = {
       echo(value: string): Promise<string> {
@@ -1156,23 +1206,29 @@ describe("session error resilience", () => {
     transportB.send("not json{");
 
     // 2. Unknown response ID
-    transportB.send(JSON.stringify({
-      jsonrpc: "2.0",
-      id: 88888,
-      result: "unknown",
-    }));
+    transportB.send(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: 88888,
+        result: "unknown",
+      }),
+    );
 
     // 3. Unroutable message
-    transportB.send(JSON.stringify({
-      jsonrpc: "2.0",
-      bogus: "field",
-    }));
+    transportB.send(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        bogus: "field",
+      }),
+    );
 
     // 4. Notification
-    transportB.send(JSON.stringify({
-      jsonrpc: "2.0",
-      method: "echo",
-    }));
+    transportB.send(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        method: "echo",
+      }),
+    );
 
     // Wait for all errors to be processed
     await new Promise((resolve) => setTimeout(resolve, 50));

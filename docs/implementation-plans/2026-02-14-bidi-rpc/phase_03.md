@@ -21,9 +21,11 @@ This is an infrastructure phase. No acceptance criteria are covered — this is 
 ---
 
 <!-- START_TASK_1 -->
+
 ### Task 1: Add transport and session types to `src/types.ts`
 
 **Files:**
+
 - Modify: `src/types.ts:63-67` (append after existing `RpcHandlerOptions` type)
 
 **Implementation:**
@@ -41,7 +43,7 @@ export type RpcMessageTransport = {
 
 // Session types
 export type RpcSessionOptions = {
-  role?: 'initiator' | 'acceptor'; // default: 'initiator'
+  role?: "initiator" | "acceptor"; // default: 'initiator'
   onError?: (err: unknown) => void;
 };
 
@@ -59,12 +61,15 @@ Run: `npm run build`
 Expected: Compiles without errors
 
 **Commit:** `feat: add transport and session type definitions`
+
 <!-- END_TASK_1 -->
 
 <!-- START_TASK_2 -->
+
 ### Task 2: Create `src/session.ts` entry point
 
 **Files:**
+
 - Create: `src/session.ts`
 
 **Implementation:**
@@ -72,11 +77,7 @@ Expected: Compiles without errors
 Create `src/session.ts` that re-exports the session-related types:
 
 ```typescript
-export type {
-  RpcMessageTransport,
-  RpcSessionOptions,
-  RpcSession,
-} from "./types.js";
+export type { RpcMessageTransport, RpcSessionOptions, RpcSession } from "./types.js";
 ```
 
 This is a thin entry point. The `rpcSession()` function will be added in Phase 4.
@@ -87,12 +88,15 @@ Run: `npm run build`
 Expected: Compiles without errors, produces `dist/session.d.ts` and `dist/session.js`
 
 **Commit:** `feat: add session entry point module`
+
 <!-- END_TASK_2 -->
 
 <!-- START_TASK_3 -->
+
 ### Task 3: Add `./session` package export
 
 **Files:**
+
 - Modify: `package.json:5-14` (add to `exports` field)
 
 **Implementation:**
@@ -127,4 +131,5 @@ Run: `npm run test`
 Expected: All existing tests still pass
 
 **Commit:** `feat: add ./session package export`
+
 <!-- END_TASK_3 -->

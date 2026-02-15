@@ -1,8 +1,6 @@
 // pattern: Functional Core
 
-import {
-  RpcProtocolError,
-} from "./types.js";
+import { RpcProtocolError } from "./types.js";
 import type {
   JsonRpcRequest,
   JsonRpcResponse,
@@ -64,7 +62,7 @@ export class RpcError extends Error {
 export function createRequest(
   method: string,
   params?: unknown[],
-  idGenerator?: () => number | string
+  idGenerator?: () => number | string,
 ): JsonRpcRequest {
   const req: JsonRpcRequest = {
     jsonrpc: "2.0",
@@ -100,7 +98,7 @@ export function errorResponse(
   id: string | number | null,
   code: number,
   message: string,
-  data?: unknown
+  data?: unknown,
 ): JsonRpcErrorResponse {
   const error: { code: number; message: string; data?: unknown } = {
     code,
@@ -114,7 +112,7 @@ export function errorResponse(
 
 export function successResponse(
   id: string | number | null,
-  result: unknown
+  result: unknown,
 ): JsonRpcSuccessResponse {
   return { jsonrpc: "2.0", id, result: result === undefined ? null : result };
 }
@@ -151,7 +149,7 @@ export function extractError(err: unknown): {
 export async function processSingleRequest(
   body: unknown,
   service: any, // any: dynamic dispatch with arbitrary method signatures
-  options?: RpcHandlerOptions
+  options?: RpcHandlerOptions,
 ): Promise<JsonRpcResponse | null> {
   if (!isJsonRpcRequest(body)) {
     return errorResponse(null, -32600, "Invalid Request");
@@ -162,7 +160,10 @@ export async function processSingleRequest(
   // Notifications are not supported — ignore without executing
   if (isNotification) {
     options?.onError?.(
-      new RpcProtocolError("NOTIFICATION_RECEIVED", `Received JSON-RPC notification for method "${body.method}" — notifications are not supported`)
+      new RpcProtocolError(
+        "NOTIFICATION_RECEIVED",
+        `Received JSON-RPC notification for method "${body.method}" — notifications are not supported`,
+      ),
     );
     return null;
   }
@@ -190,7 +191,7 @@ export async function processSingleRequest(
     return successResponse(id, result);
   } catch (err) {
     options?.onError?.(
-      new RpcProtocolError("HANDLER_ERROR", `Handler for "${method}" threw`, { cause: err })
+      new RpcProtocolError("HANDLER_ERROR", `Handler for "${method}" threw`, { cause: err }),
     );
     const { code, message, data } = extractError(err);
     return errorResponse(id, code, message, data);
@@ -204,7 +205,7 @@ export async function processSingleRequest(
 export async function processRpc<T>(
   body: unknown,
   service: T,
-  options?: RpcHandlerOptions
+  options?: RpcHandlerOptions,
 ): Promise<JsonRpcResponse | JsonRpcResponse[] | null> {
   // Primitives (not object, not array)
   if (typeof body !== "object" || body === null) {
@@ -218,13 +219,11 @@ export async function processRpc<T>(
     }
 
     const results = await Promise.all(
-      body.map((item) => processSingleRequest(item, service, options))
+      body.map((item) => processSingleRequest(item, service, options)),
     );
 
     // Filter out nulls (notifications produce no response)
-    const responses = results.filter(
-      (r): r is JsonRpcResponse => r !== null
-    );
+    const responses = results.filter((r): r is JsonRpcResponse => r !== null);
 
     if (responses.length === 0) return null;
     return responses;

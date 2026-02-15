@@ -17,6 +17,7 @@
 This phase implements and tests:
 
 ### bidi-rpc.AC1: Notifications removed
+
 - **bidi-rpc.AC1.1 Success:** Client proxy has no `.notify` property — accessing it returns `undefined`
 - **bidi-rpc.AC1.2 Success:** `RpcClient<T>` type is equivalent to `PromisifyMethods<T>` (no notify member)
 - **bidi-rpc.AC1.3 Success:** Void-returning methods return `Promise<void>` that resolves when the server processes the call (response has `result: null`)
@@ -28,11 +29,13 @@ This phase implements and tests:
 
 <!-- START_SUBCOMPONENT_A (tasks 1-2) -->
 <!-- START_TASK_1 -->
+
 ### Task 1: Server-side notification changes + server test updates
 
 **Verifies:** bidi-rpc.AC1.4, bidi-rpc.AC1.5, bidi-rpc.AC1.6
 
 **Files:**
+
 - Modify: `src/core.ts` (the `processSingleRequest` function, moved here in Phase 1)
 - Modify: `src/__tests__/server.test.ts`
 
@@ -46,7 +49,7 @@ Change the function so that immediately after validation (`isJsonRpcRequest` che
 async function processSingleRequest(
   body: unknown,
   service: any,
-  options?: RpcHandlerOptions
+  options?: RpcHandlerOptions,
 ): Promise<JsonRpcResponse | null> {
   if (!isJsonRpcRequest(body)) {
     return errorResponse(null, -32600, "Invalid Request");
@@ -57,7 +60,9 @@ async function processSingleRequest(
   // Notifications are not supported — ignore without executing
   if (isNotification) {
     options?.onError?.(
-      new Error(`Received JSON-RPC notification for method "${body.method}" — notifications are not supported`)
+      new Error(
+        `Received JSON-RPC notification for method "${body.method}" — notifications are not supported`,
+      ),
     );
     return null;
   }
@@ -92,6 +97,7 @@ async function processSingleRequest(
 ```
 
 Key changes from the current implementation:
+
 - The notification check moves to the top, before any method lookup or execution
 - All `if (isNotification) return null;` guards sprinkled through the function are removed
 - A warning is logged via `onError` when a notification is received
@@ -118,16 +124,13 @@ Key changes from the current implementation:
    - Change to verify handlers are **NOT** called: `expect(fn1).not.toHaveBeenCalled();` and `expect(fn2).not.toHaveBeenCalled();`
 
 6. **Add new test** "logs warning via onError when notification received":
+
    ```typescript
    it("logs warning via onError when notification received", async () => {
      const onError = vi.fn();
      const fn = vi.fn();
      const svc = { doStuff: fn };
-     await processRpc(
-       { jsonrpc: "2.0", method: "doStuff", params: [1] },
-       svc,
-       { onError }
-     );
+     await processRpc({ jsonrpc: "2.0", method: "doStuff", params: [1] }, svc, { onError });
      expect(fn).not.toHaveBeenCalled();
      expect(onError).toHaveBeenCalledOnce();
      expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
@@ -146,7 +149,7 @@ Key changes from the current implementation:
          { jsonrpc: "2.0", method: "logEvent", params: ["test"] },
          { jsonrpc: "2.0", id: 2, method: "subtract", params: [5, 3] },
        ],
-       svc
+       svc,
      );
      expect(result).toEqual([
        { jsonrpc: "2.0", id: 1, result: 3 },
@@ -165,14 +168,17 @@ Run: `npm run build`
 Expected: Compiles without errors
 
 **Commit:** `feat: ignore incoming notifications without executing handlers`
+
 <!-- END_TASK_1 -->
 
 <!-- START_TASK_2 -->
+
 ### Task 2: Client-side notification removal + type changes + client test updates
 
 **Verifies:** bidi-rpc.AC1.1, bidi-rpc.AC1.2
 
 **Files:**
+
 - Modify: `src/types.ts:29-61`
 - Modify: `src/client.ts:106-294`
 - Modify: `src/__tests__/client.test.ts`
@@ -182,6 +188,7 @@ Expected: Compiles without errors
 **In `src/types.ts`:**
 
 1. Add `export` to the `PromisifyMethods` type at line 35:
+
    ```typescript
    export type PromisifyMethods<T extends object> = {
      [K in keyof T]: Promisify<T[K]>;
@@ -202,6 +209,7 @@ Remove all notification-related code:
 1. **Delete `PendingNotification` type** (lines 112-115)
 
 2. **Remove "notify" from `RESERVED_PROPS`** (line 117). Change to:
+
    ```typescript
    const RESERVED_PROPS = new Set(["then", "toJSON"]);
    ```
@@ -247,16 +255,19 @@ Run: `npm run build`
 Expected: Compiles without errors
 
 **Commit:** `refactor: remove notification plumbing from client`
+
 <!-- END_TASK_2 -->
 <!-- END_SUBCOMPONENT_A -->
 
 <!-- START_SUBCOMPONENT_B (tasks 3-4) -->
 <!-- START_TASK_3 -->
+
 ### Task 3: E2e and spec test updates + final verification
 
 **Verifies:** bidi-rpc.AC1.1, bidi-rpc.AC1.3, bidi-rpc.AC1.4, bidi-rpc.AC1.5, bidi-rpc.AC1.6
 
 **Files:**
+
 - Modify: `src/__tests__/e2e.test.ts`
 - Modify: `src/__tests__/spec.test.ts`
 - Review: `src/__tests__/property.test.ts` (verify no changes needed)
@@ -284,10 +295,13 @@ Expected: Compiles without errors
 **`src/__tests__/spec.test.ts`:**
 
 1. **Update stale comment** at line 180. Change:
+
    ```
    // foobar exists, so it executes and returns null
    ```
+
    to:
+
    ```
    // notification — ignored without executing, returns null
    ```
@@ -307,14 +321,17 @@ Run: `npm run build`
 Expected: Compiles without errors
 
 **Commit:** `test: update e2e and spec tests for notification removal`
+
 <!-- END_TASK_3 -->
 
 <!-- START_TASK_4 -->
+
 ### Task 4: Final verification and cleanup
 
 **Verifies:** bidi-rpc.AC1.1, bidi-rpc.AC1.2, bidi-rpc.AC1.3
 
 **Files:**
+
 - Review: `src/types.ts`, `src/client.ts`, `src/core.ts`
 - Modify: `src/client.ts` (if needed — remove dead code)
 
@@ -341,5 +358,6 @@ Run: `npm run build`
 Expected: Compiles without errors
 
 **Commit:** `chore: clean up after notification removal`
+
 <!-- END_TASK_4 -->
 <!-- END_SUBCOMPONENT_B -->

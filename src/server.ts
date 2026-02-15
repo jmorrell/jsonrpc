@@ -13,7 +13,7 @@ export { processRpc, isJsonRpcRequest } from "./core.js";
 export async function handleRpc<T>(
   request: Request,
   service: T,
-  options?: RpcHandlerOptions
+  options?: RpcHandlerOptions,
 ): Promise<Response> {
   // Check HTTP method
   if (request.method !== "POST") {
@@ -29,13 +29,10 @@ export async function handleRpc<T>(
   try {
     parsed = JSON.parse(text);
   } catch {
-    return new Response(
-      JSON.stringify(errorResponse(null, -32700, "Parse error")),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify(errorResponse(null, -32700, "Parse error")), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   // Process

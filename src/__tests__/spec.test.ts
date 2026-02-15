@@ -40,20 +40,14 @@ describe("spec compliance: error codes", () => {
   });
 
   it("-32600 Invalid Request", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", method: 1, id: "1" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", method: 1, id: "1" }, service);
     expect(result).toMatchObject({
       error: { code: -32600, message: "Invalid Request" },
     });
   });
 
   it("-32601 Method not found", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", method: "nonexistent", id: "1" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", method: "nonexistent", id: "1" }, service);
     expect(result).toMatchObject({
       jsonrpc: "2.0",
       id: "1",
@@ -65,7 +59,7 @@ describe("spec compliance: error codes", () => {
     // Our library only supports by-position params; named params → Invalid Request
     const result = await processRpc(
       { jsonrpc: "2.0", method: "subtract", params: { a: 1, b: 2 }, id: "1" },
-      service
+      service,
     );
     // Named params make isJsonRpcRequest fail → Invalid Request
     expect(result).toMatchObject({
@@ -79,10 +73,7 @@ describe("spec compliance: error codes", () => {
         throw "just a string";
       },
     };
-    const result = await processRpc(
-      { jsonrpc: "2.0", method: "broken", id: 1 },
-      svc
-    );
+    const result = await processRpc({ jsonrpc: "2.0", method: "broken", id: 1 }, svc);
     expect(result).toMatchObject({
       jsonrpc: "2.0",
       id: 1,
@@ -95,7 +86,7 @@ describe("spec compliance: ID types", () => {
   it("string id", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", id: "abc", method: "subtract", params: [42, 23] },
-      service
+      service,
     );
     expect(result).toEqual({
       jsonrpc: "2.0",
@@ -107,7 +98,7 @@ describe("spec compliance: ID types", () => {
   it("number id", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", id: 1, method: "subtract", params: [42, 23] },
-      service
+      service,
     );
     expect(result).toEqual({
       jsonrpc: "2.0",
@@ -119,7 +110,7 @@ describe("spec compliance: ID types", () => {
   it("null id", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", id: null, method: "subtract", params: [42, 23] },
-      service
+      service,
     );
     expect(result).toEqual({
       jsonrpc: "2.0",
@@ -141,7 +132,7 @@ describe("spec examples (adapted for by-position params only)", () => {
   it("subtract(42, 23) → 19", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", method: "subtract", params: [42, 23], id: 1 },
-      service
+      service,
     );
     expect(result).toEqual({ jsonrpc: "2.0", result: 19, id: 1 });
   });
@@ -149,7 +140,7 @@ describe("spec examples (adapted for by-position params only)", () => {
   it("subtract(23, 42) → -19", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", method: "subtract", params: [23, 42], id: 2 },
-      service
+      service,
     );
     expect(result).toEqual({ jsonrpc: "2.0", result: -19, id: 2 });
   });
@@ -158,7 +149,7 @@ describe("spec examples (adapted for by-position params only)", () => {
   it("named params rejected", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", method: "subtract", params: { subtrahend: 23, minuend: 42 }, id: 3 },
-      service
+      service,
     );
     expect(result).toMatchObject({ error: { code: -32600 } });
   });
@@ -167,26 +158,20 @@ describe("spec examples (adapted for by-position params only)", () => {
   it("notification: no response", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", method: "update", params: [1, 2, 3, 4, 5] },
-      service
+      service,
     );
     expect(result).toBeNull();
   });
 
   it("notification: method not found still returns null", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", method: "foobar" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", method: "foobar" }, service);
     // notification — ignored without executing, returns null
     expect(result).toBeNull();
   });
 
   // Non-existent method
   it("non-existent method → -32601", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", method: "nonexistent", id: "1" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", method: "nonexistent", id: "1" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       error: { code: -32601, message: "Method not found" },
@@ -205,7 +190,7 @@ describe("spec examples (adapted for by-position params only)", () => {
         { jsonrpc: "2.0", method: "foo.get", params: [{ name: "myself" }], id: "5" },
         { jsonrpc: "2.0", method: "get_data", id: "9" },
       ],
-      service
+      service,
     );
     expect(Array.isArray(result)).toBe(true);
     const arr = result as any[];
@@ -227,9 +212,7 @@ describe("spec examples (adapted for by-position params only)", () => {
     });
 
     // {foo: "boo"} → Invalid Request
-    const invalidReq = arr.find(
-      (r: any) => r.error?.code === -32600 && r.id === null
-    );
+    const invalidReq = arr.find((r: any) => r.error?.code === -32600 && r.id === null);
     expect(invalidReq).toBeTruthy();
 
     // foo.get → Invalid Request because params is object (named params)
@@ -256,7 +239,7 @@ describe("spec examples (adapted for by-position params only)", () => {
         { jsonrpc: "2.0", method: "notify_sum", params: [1, 2, 4] },
         { jsonrpc: "2.0", method: "notify_hello", params: [7] },
       ],
-      service
+      service,
     );
     expect(result).toBeNull();
   });

@@ -38,11 +38,7 @@ describe("property-based tests", () => {
       fc.asyncProperty(
         fc.record({
           jsonrpc: fc.constant("2.0" as const),
-          id: fc.oneof(
-            fc.integer(),
-            fc.string(),
-            fc.constant(null)
-          ),
+          id: fc.oneof(fc.integer(), fc.string(), fc.constant(null)),
           method: fc.constantFrom("echo", "add", "noop"),
           params: fc.array(fc.jsonValue(), { maxLength: 5 }),
         }),
@@ -50,9 +46,9 @@ describe("property-based tests", () => {
           const result = await processRpc(request, service);
           expect(result).not.toBeNull();
           expect(isValidResponse(result)).toBe(true);
-        }
+        },
       ),
-      { numRuns: 200 }
+      { numRuns: 200 },
     );
   });
 
@@ -66,15 +62,15 @@ describe("property-based tests", () => {
             method: fc.constantFrom("echo", "add", "noop"),
             params: fc.array(fc.jsonValue(), { maxLength: 3 }),
           }),
-          { minLength: 1, maxLength: 10 }
+          { minLength: 1, maxLength: 10 },
         ),
         async (batch) => {
           const result = await processRpc(batch, service);
           expect(Array.isArray(result)).toBe(true);
           expect((result as any[]).length).toBe(batch.length);
-        }
+        },
       ),
-      { numRuns: 200 }
+      { numRuns: 200 },
     );
   });
 
@@ -88,7 +84,7 @@ describe("property-based tests", () => {
             method: fc.constantFrom("echo", "add", "noop"),
             params: fc.array(fc.jsonValue(), { maxLength: 3 }),
           }),
-          { minLength: 1, maxLength: 10 }
+          { minLength: 1, maxLength: 10 },
         ),
         async (batch) => {
           const result = await processRpc(batch, service);
@@ -97,9 +93,9 @@ describe("property-based tests", () => {
           for (const res of responses) {
             expect(requestIds.has(res.id as number)).toBe(true);
           }
-        }
+        },
       ),
-      { numRuns: 200 }
+      { numRuns: 200 },
     );
   });
 
@@ -118,9 +114,9 @@ describe("property-based tests", () => {
             expect(typeof err.code).toBe("number");
             expect(typeof err.message).toBe("string");
           }
-        }
+        },
       ),
-      { numRuns: 200 }
+      { numRuns: 200 },
     );
   });
 });

@@ -47,9 +47,7 @@ const RESERVED_PROPS = new Set(["then", "toJSON"]);
 /**
  * Create a typed JSON-RPC 2.0 client with auto-batching.
  */
-export function rpcClient<T extends object>(
-  options: RpcClientOptions
-): RpcClient<T> {
+export function rpcClient<T extends object>(options: RpcClientOptions): RpcClient<T> {
   let transport: RpcTransport;
 
   if (typeof options === "string") {
@@ -83,9 +81,7 @@ export function rpcClient<T extends object>(
     if (requests.length === 0) return;
 
     const isSingleRequest = requests.length === 1;
-    const body = isSingleRequest
-      ? JSON.stringify(requests[0])
-      : JSON.stringify(requests);
+    const body = isSingleRequest ? JSON.stringify(requests[0]) : JSON.stringify(requests);
 
     try {
       const responseText = await transport(body);
@@ -179,6 +175,6 @@ export function rpcClient<T extends object>(
           });
         };
       },
-    }
+    },
   ) as RpcClient<T>;
 }

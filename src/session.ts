@@ -1,14 +1,7 @@
 // pattern: Imperative Shell
 
-import {
-  processRpc,
-  isJsonRpcResponse,
-  createRequest,
-  RpcError,
-} from "./core.js";
-import {
-  RpcProtocolError,
-} from "./types.js";
+import { processRpc, isJsonRpcResponse, createRequest, RpcError } from "./core.js";
+import { RpcProtocolError } from "./types.js";
 import type {
   RpcMessageTransport,
   RpcSessionOptions,
@@ -46,9 +39,7 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
   let closed = false;
 
   // Build RpcHandlerOptions to pass onError through to processRpc
-  const handlerOptions: RpcHandlerOptions | undefined = onError
-    ? { onError }
-    : undefined;
+  const handlerOptions: RpcHandlerOptions | undefined = onError ? { onError } : undefined;
 
   // --- Incoming message handler ---
   transport.onMessage((message: string) => {
@@ -56,7 +47,9 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
     try {
       parsed = JSON.parse(message);
     } catch (err) {
-      onError?.(new RpcProtocolError("PARSE_ERROR", "Failed to parse JSON-RPC message", { cause: err }));
+      onError?.(
+        new RpcProtocolError("PARSE_ERROR", "Failed to parse JSON-RPC message", { cause: err }),
+      );
       return;
     }
 
@@ -92,7 +85,9 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
     try {
       transport.send(JSON.stringify(response));
     } catch (err) {
-      onError?.(new RpcProtocolError("SEND_FAILED", "Failed to send JSON-RPC response", { cause: err }));
+      onError?.(
+        new RpcProtocolError("SEND_FAILED", "Failed to send JSON-RPC response", { cause: err }),
+      );
     }
   }
 
@@ -105,13 +100,17 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
 
     const id = parsed.id;
     if (id === null || id === undefined) {
-      onError?.(new RpcProtocolError("NULL_RESPONSE_ID", "Received response with null/undefined ID"));
+      onError?.(
+        new RpcProtocolError("NULL_RESPONSE_ID", "Received response with null/undefined ID"),
+      );
       return;
     }
 
     const pending = pendingCalls.get(id);
     if (!pending) {
-      onError?.(new RpcProtocolError("UNKNOWN_RESPONSE_ID", `Received response for unknown ID: ${id}`));
+      onError?.(
+        new RpcProtocolError("UNKNOWN_RESPONSE_ID", `Received response for unknown ID: ${id}`),
+      );
       return;
     }
 
@@ -136,35 +135,32 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
   });
 
   // --- Outgoing call proxy ---
-  const remote = new Proxy(
-    {} as TRemote,
-    {
-      get(_target, prop) {
-        if (typeof prop === "symbol") return undefined;
-        if (RESERVED_PROPS.has(prop as string)) return undefined;
+  const remote = new Proxy({} as TRemote, {
+    get(_target, prop) {
+      if (typeof prop === "symbol") return undefined;
+      if (RESERVED_PROPS.has(prop as string)) return undefined;
 
-        return (...args: Array<unknown>) => {
-          if (closed) {
-            return Promise.reject(new Error("Session is closed"));
+      return (...args: Array<unknown>) => {
+        if (closed) {
+          return Promise.reject(new Error("Session is closed"));
+        }
+
+        const id = nextId;
+        nextId += idStep;
+        const req = createRequest(prop as string, args, () => id);
+
+        return new Promise((resolve, reject) => {
+          pendingCalls.set(id, { resolve, reject });
+          try {
+            transport.send(JSON.stringify(req));
+          } catch (err) {
+            pendingCalls.delete(id);
+            reject(err);
           }
-
-          const id = nextId;
-          nextId += idStep;
-          const req = createRequest(prop as string, args, () => id);
-
-          return new Promise((resolve, reject) => {
-            pendingCalls.set(id, { resolve, reject });
-            try {
-              transport.send(JSON.stringify(req));
-            } catch (err) {
-              pendingCalls.delete(id);
-              reject(err);
-            }
-          });
-        };
-      },
+        });
+      };
     },
-  );
+  });
 
   return {
     remote: remote as RpcSession<TRemote, TLocal>["remote"],

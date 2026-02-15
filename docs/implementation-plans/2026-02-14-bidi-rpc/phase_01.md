@@ -22,9 +22,11 @@ This is an infrastructure phase. No acceptance criteria are covered — this is 
 
 <!-- START_SUBCOMPONENT_A (tasks 1-3) -->
 <!-- START_TASK_1 -->
+
 ### Task 1: Create `src/core.ts` with functions extracted from `server.ts`
 
 **Files:**
+
 - Create: `src/core.ts`
 - Modify: `src/server.ts`
 
@@ -40,9 +42,11 @@ Create `src/core.ts` containing the following functions currently defined in `sr
 - `processRpc` (currently exported at `server.ts:124-155`)
 
 All functions should be exported from `core.ts`. Import the types they need from `./types.js`:
+
 - `JsonRpcRequest`, `JsonRpcResponse`, `JsonRpcErrorResponse`, `JsonRpcSuccessResponse`, `RpcHandlerOptions`
 
 Then update `src/server.ts` to:
+
 1. Remove all six function definitions listed above
 2. Import them from `./core.js`: `import { isJsonRpcRequest, errorResponse, processRpc } from "./core.js";`
 3. Keep `handleRpc` in `server.ts` (it's the HTTP-specific wrapper)
@@ -50,6 +54,7 @@ Then update `src/server.ts` to:
 5. Re-export `processRpc` and `isJsonRpcRequest` from `server.ts` so existing consumers don't break: `export { processRpc, isJsonRpcRequest } from "./core.js";`
 
 `server.ts` should only contain:
+
 - Type imports from `./types.js`
 - Imports from `./core.js`
 - Re-exports of `processRpc`, `isJsonRpcRequest`, `RpcHandlerOptions`
@@ -61,12 +66,15 @@ Run: `npm run test`
 Expected: All existing tests pass unchanged
 
 **Commit:** `refactor: extract server functions to core.ts`
+
 <!-- END_TASK_1 -->
 
 <!-- START_TASK_2 -->
+
 ### Task 2: Move client shared functions to `src/core.ts`
 
 **Files:**
+
 - Modify: `src/core.ts`
 - Modify: `src/client.ts`
 
@@ -79,15 +87,18 @@ Move these functions from `src/client.ts` to `src/core.ts`:
 - `createRequest` (currently exported at `client.ts:63-82`)
 
 Add them as exports in `core.ts`. They need these type imports (already partially imported in core.ts from Task 1):
+
 - `JsonRpcResponse`, `JsonRpcErrorResponse` (for `isJsonRpcResponse`)
 - `JsonRpcRequest` (for `createRequest`)
 
 Then update `src/client.ts` to:
+
 1. Remove the three definitions listed above
 2. Import them from `./core.js`: `import { isJsonRpcResponse, RpcError, createRequest } from "./core.js";`
 3. Re-export them so existing consumers don't break: `export { isJsonRpcResponse, RpcError, createRequest } from "./core.js";`
 
 `client.ts` should only contain:
+
 - Type imports from `./types.js`
 - Imports from `./core.js`
 - Re-exports of `isJsonRpcResponse`, `RpcError`, `createRequest`, plus type re-exports (`RpcTransport`, `RpcClientOptions`, `RpcClient`)
@@ -102,12 +113,15 @@ Run: `npm run test`
 Expected: All existing tests pass unchanged
 
 **Commit:** `refactor: extract client functions to core.ts`
+
 <!-- END_TASK_2 -->
 
 <!-- START_TASK_3 -->
+
 ### Task 3: Verify no cross-imports and clean module boundaries
 
 **Files:**
+
 - Review: `src/core.ts`, `src/client.ts`, `src/server.ts`
 
 **Implementation:**
@@ -130,5 +144,6 @@ Run: `npm run build`
 Expected: Compiles without errors, produces `dist/core.d.ts`, `dist/core.js`
 
 **Commit:** `refactor: verify clean module boundaries after core extraction`
+
 <!-- END_TASK_3 -->
 <!-- END_SUBCOMPONENT_A -->
