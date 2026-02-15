@@ -54,7 +54,7 @@ export class RpcError extends Error {
 }
 
 /**
- * Create a JsonRpcRequest. If idGenerator is undefined, creates a notification (no id).
+ * Create a JsonRpcRequest. If idGenerator is not provided, the request will have no id field.
  */
 export function createRequest(
   method: string,

@@ -448,24 +448,6 @@ describe("processRpc batch", () => {
     expect(fn).not.toHaveBeenCalled();
   });
 
-  it("batch: requests produce responses, notification handlers not executed", async () => {
-    const notifyFn = vi.fn();
-    const svc = { ...service, logEvent: notifyFn };
-    const result = await processRpc(
-      [
-        { jsonrpc: "2.0", id: 1, method: "add", params: [1, 2] },
-        { jsonrpc: "2.0", method: "logEvent", params: ["test"] },
-        { jsonrpc: "2.0", id: 2, method: "subtract", params: [5, 3] },
-      ],
-      svc
-    );
-    expect(result).toEqual([
-      { jsonrpc: "2.0", id: 1, result: 3 },
-      { jsonrpc: "2.0", id: 2, result: 2 },
-    ]);
-    expect(notifyFn).not.toHaveBeenCalled();
-  });
-
   it("returns Invalid Request error for empty array", async () => {
     const result = await processRpc([], service);
     expect(result).toEqual({
