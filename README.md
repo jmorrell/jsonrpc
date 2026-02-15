@@ -36,10 +36,10 @@ It's not required to use a class here, anything that implements the service inte
 ```ts
 export class MathServiceImpl implements MathService {
   constructor(
-     protected req: Request,
-     protected env: Env,
+    protected req: Request,
+    protected env: Env,
   ) {}
-  
+
   add(a: number, b: number) {
     return a + b;
   }
@@ -177,7 +177,7 @@ try {
 } catch (err) {
   if (err instanceof RpcError) {
     console.log(err.message); // "Division by zero"
-    console.log(err.code);    // -32000
+    console.log(err.code); // -32000
   }
 }
 ```
@@ -185,7 +185,7 @@ try {
 Internal errors follow the [spec-defined error codes](https://www.jsonrpc.org/specification#error_object):
 
 | Code   | Meaning          |
-|--------|------------------|
+| ------ | ---------------- |
 | -32700 | Parse error      |
 | -32600 | Invalid request  |
 | -32601 | Method not found |
@@ -205,6 +205,7 @@ await client.divide({ a: 4, b: 2 });
 ## Security
 
 The server rejects calls to:
+
 - Methods starting with `rpc.` (spec-reserved)
 - `Object.prototype` properties (`constructor`, `__proto__`, `toString`, etc.)
 - Properties that aren't functions on the service object

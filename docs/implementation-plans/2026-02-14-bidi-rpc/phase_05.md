@@ -17,6 +17,7 @@
 This phase implements and tests:
 
 ### bidi-rpc.AC3: Connection lifecycle
+
 - **bidi-rpc.AC3.1 Success:** When transport closes, all pending outgoing calls reject with the close reason
 - **bidi-rpc.AC3.2 Success:** `session.close()` calls `transport.close()` and rejects pending calls
 - **bidi-rpc.AC3.3 Failure:** Calling `session.remote.method()` after close rejects immediately
@@ -26,11 +27,13 @@ This phase implements and tests:
 
 <!-- START_SUBCOMPONENT_A (tasks 1-2) -->
 <!-- START_TASK_1 -->
+
 ### Task 1: Verify and refine session close behavior
 
 **Verifies:** bidi-rpc.AC3.1, bidi-rpc.AC3.2, bidi-rpc.AC3.3, bidi-rpc.AC3.4
 
 **Files:**
+
 - Review: `src/session.ts` (verify close behavior from Phase 4 implementation)
 - Modify: `src/session.ts` (if any edge cases aren't handled)
 
@@ -59,6 +62,7 @@ Review the `rpcSession()` implementation from Phase 4 and verify these behaviors
    - The `try/catch` around `transport.send()` in `handleIncomingRequest` should catch this and log via `onError` without crashing
 
    Verify the `handleIncomingRequest` function handles send failure gracefully:
+
    ```typescript
    async function handleIncomingRequest(parsed: unknown): Promise<void> {
      const response = await processRpc(parsed, service, handlerOptions);
@@ -79,14 +83,17 @@ Run: `npm run build`
 Expected: Compiles without errors
 
 **Commit:** `feat: refine session close behavior for edge cases` (only if changes needed; skip if Phase 4 already handles everything)
+
 <!-- END_TASK_1 -->
 
 <!-- START_TASK_2 -->
+
 ### Task 2: Write connection lifecycle tests
 
 **Verifies:** bidi-rpc.AC3.1, bidi-rpc.AC3.2, bidi-rpc.AC3.3, bidi-rpc.AC3.4
 
 **Files:**
+
 - Modify: `src/__tests__/session.test.ts` (add lifecycle tests to existing file from Phase 4)
 
 **Testing:**
@@ -104,6 +111,7 @@ Tests must verify each AC listed above:
 - **bidi-rpc.AC3.4:** Create a session where the acceptor has a slow async service method. Start a call to that method, then close the transport while the method is executing. Verify: (1) the session doesn't throw/crash, (2) the response send failure is logged via `onError`.
 
 For AC3.1 and AC3.2, the tricky part is making a call that stays pending. Options:
+
 - Use a service method that returns `new Promise(() => {})` (never resolves)
 - Use a service method with a `setTimeout` that resolves after a delay
 
@@ -115,5 +123,6 @@ Run: `npm run test`
 Expected: All tests pass
 
 **Commit:** `test: add session lifecycle tests`
+
 <!-- END_TASK_2 -->
 <!-- END_SUBCOMPONENT_A -->

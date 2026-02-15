@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { rpcClient, RpcError } from "../client.js";
-import { processRpc, handleRpc } from "../server.js";
+import { processRpc } from "../server.js";
 import type { RpcTransport } from "../types.js";
 
 // Service definition
@@ -106,4 +106,3 @@ describe("e2e: client → server round trip", () => {
     }
   });
 });
-

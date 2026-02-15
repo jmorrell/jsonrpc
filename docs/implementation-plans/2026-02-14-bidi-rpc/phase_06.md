@@ -17,6 +17,7 @@
 This phase implements and tests:
 
 ### bidi-rpc.AC4: Error resilience
+
 - **bidi-rpc.AC4.1 Success:** Malformed JSON on transport is logged via `onError` and ignored — session stays alive
 - **bidi-rpc.AC4.2 Success:** Response with unknown ID is logged via `onError` and ignored
 - **bidi-rpc.AC4.3 Success:** Message that is neither request nor response is logged via `onError` and ignored
@@ -27,11 +28,13 @@ This phase implements and tests:
 
 <!-- START_SUBCOMPONENT_A (tasks 1-2) -->
 <!-- START_TASK_1 -->
+
 ### Task 1: Verify error handling in session implementation
 
 **Verifies:** bidi-rpc.AC4.1, bidi-rpc.AC4.2, bidi-rpc.AC4.3, bidi-rpc.AC4.4, bidi-rpc.AC4.5
 
 **Files:**
+
 - Review: `src/session.ts`
 - Modify: `src/session.ts` (if any error cases aren't handled)
 
@@ -57,14 +60,17 @@ Run: `npm run build`
 Expected: Compiles without errors
 
 **Commit:** `feat: verify error resilience in session` (only if changes needed; skip if Phase 4 already handles everything)
+
 <!-- END_TASK_1 -->
 
 <!-- START_TASK_2 -->
+
 ### Task 2: Write error resilience tests
 
 **Verifies:** bidi-rpc.AC4.1, bidi-rpc.AC4.2, bidi-rpc.AC4.3, bidi-rpc.AC4.4, bidi-rpc.AC4.5
 
 **Files:**
+
 - Modify: `src/__tests__/session.test.ts` (add error resilience tests to existing file)
 
 **Testing:**
@@ -84,6 +90,7 @@ Tests must verify each AC listed above:
 - **bidi-rpc.AC4.5:** Send a JSON-RPC notification (request without `id` field) to the session's transport. Verify: (1) the method handler on the service is NOT called, (2) `onError` is called with a message about notifications.
 
 For tests that inject raw messages, directly call the transport's message handler rather than going through the linked pair. For example:
+
 ```typescript
 // Get a reference to the raw transport to inject messages
 const [transportA, transportB] = createLinkedTransports();
@@ -99,5 +106,6 @@ Run: `npm run test`
 Expected: All tests pass
 
 **Commit:** `test: add session error resilience tests`
+
 <!-- END_TASK_2 -->
 <!-- END_SUBCOMPONENT_A -->

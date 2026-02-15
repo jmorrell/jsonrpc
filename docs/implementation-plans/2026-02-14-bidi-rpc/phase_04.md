@@ -17,6 +17,7 @@
 This phase implements and tests:
 
 ### bidi-rpc.AC2: Bidirectional RPC session
+
 - **bidi-rpc.AC2.1 Success:** Initiator can call methods on acceptor's service via `session.remote`
 - **bidi-rpc.AC2.2 Success:** Acceptor can call methods on initiator's service via `session.remote`
 - **bidi-rpc.AC2.3 Success:** Both sides can call each other simultaneously without ID collision (initiator uses positive IDs, acceptor uses negative IDs)
@@ -28,9 +29,11 @@ This phase implements and tests:
 ---
 
 <!-- START_TASK_1 -->
+
 ### Task 1: Create `createLinkedTransports` test helper
 
 **Files:**
+
 - Create: `src/__tests__/test-helpers.ts`
 
 **Implementation:**
@@ -92,6 +95,7 @@ export function createLinkedTransports(): [RpcMessageTransport, RpcMessageTransp
 ```
 
 Key design decisions:
+
 - `send()` on A delivers to B's `onMessage` handler synchronously (and vice versa)
 - `close()` on either side fires both `onClose` handlers with a reason
 - `send()` after close throws (this is tested in Phase 5)
@@ -103,20 +107,24 @@ Run: `npm run build`
 Expected: Compiles (this file is in `__tests__/`, excluded from build by tsconfig)
 
 **Commit:** `test: add createLinkedTransports test helper`
+
 <!-- END_TASK_1 -->
 
 <!-- START_SUBCOMPONENT_A (tasks 2-3) -->
 <!-- START_TASK_2 -->
+
 ### Task 2: Implement `rpcSession()` in `src/session.ts`
 
 **Verifies:** bidi-rpc.AC2.1, bidi-rpc.AC2.2, bidi-rpc.AC2.3, bidi-rpc.AC2.7
 
 **Files:**
+
 - Modify: `src/session.ts` (currently just type re-exports from Phase 3)
 
 **Implementation:**
 
 Add the `rpcSession()` function to `src/session.ts`. It combines:
+
 - **Outgoing calls:** Proxy-based `remote` object, pending-call Map, ID generation
 - **Incoming requests:** Dispatch via `processRpc` from `core.ts`, send response back
 - **Message routing:** Parse incoming messages and route to request handler or response resolver
@@ -127,12 +135,7 @@ Import from `./types.js`: `RpcMessageTransport`, `RpcSessionOptions`, `RpcSessio
 Re-export `RpcError` from session entry point so consumers of `@jmorrell/jsonrpc/session` can catch typed errors without importing from `./client` or `./core`.
 
 ```typescript
-import {
-  processRpc,
-  isJsonRpcResponse,
-  createRequest,
-  RpcError,
-} from "./core.js";
+import { processRpc, isJsonRpcResponse, createRequest, RpcError } from "./core.js";
 import type {
   RpcMessageTransport,
   RpcSessionOptions,
@@ -143,11 +146,7 @@ import type {
 } from "./types.js";
 
 export { RpcError } from "./core.js";
-export type {
-  RpcMessageTransport,
-  RpcSessionOptions,
-  RpcSession,
-} from "./types.js";
+export type { RpcMessageTransport, RpcSessionOptions, RpcSession } from "./types.js";
 
 type PendingCall = {
   resolve: (value: unknown) => void;
@@ -169,9 +168,7 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
   let closed = false;
 
   // Build RpcHandlerOptions to pass onError through to processRpc
-  const handlerOptions: RpcHandlerOptions | undefined = onError
-    ? { onError }
-    : undefined;
+  const handlerOptions: RpcHandlerOptions | undefined = onError ? { onError } : undefined;
 
   // --- Incoming message handler ---
   transport.onMessage((message: string) => {
@@ -259,35 +256,32 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
   });
 
   // --- Outgoing call proxy ---
-  const remote = new Proxy(
-    {} as TRemote,
-    {
-      get(_target, prop) {
-        if (typeof prop === "symbol") return undefined;
-        if (RESERVED_PROPS.has(prop as string)) return undefined;
+  const remote = new Proxy({} as TRemote, {
+    get(_target, prop) {
+      if (typeof prop === "symbol") return undefined;
+      if (RESERVED_PROPS.has(prop as string)) return undefined;
 
-        return (...args: Array<unknown>) => {
-          if (closed) {
-            return Promise.reject(new Error("Session is closed"));
+      return (...args: Array<unknown>) => {
+        if (closed) {
+          return Promise.reject(new Error("Session is closed"));
+        }
+
+        const id = nextId;
+        nextId += idStep;
+        const req = createRequest(prop as string, args, () => id);
+
+        return new Promise((resolve, reject) => {
+          pendingCalls.set(id, { resolve, reject });
+          try {
+            transport.send(JSON.stringify(req));
+          } catch (err) {
+            pendingCalls.delete(id);
+            reject(err);
           }
-
-          const id = nextId;
-          nextId += idStep;
-          const req = createRequest(prop as string, args, () => id);
-
-          return new Promise((resolve, reject) => {
-            pendingCalls.set(id, { resolve, reject });
-            try {
-              transport.send(JSON.stringify(req));
-            } catch (err) {
-              pendingCalls.delete(id);
-              reject(err);
-            }
-          });
-        };
-      },
+        });
+      };
     },
-  );
+  });
 
   return {
     remote: remote as RpcSession<TRemote, TLocal>["remote"],
@@ -306,6 +300,7 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
 ```
 
 Key implementation decisions:
+
 - **ID generation:** Initiator starts at 1, increments by +1. Acceptor starts at -1, increments by -1. IDs never collide.
 - **No batching:** Each outgoing call sends immediately via `transport.send()` — no `setTimeout(0)` batching
 - **Message routing:** Checks for `method` field (request) or `result`/`error` field (response)
@@ -319,14 +314,17 @@ Run: `npm run build`
 Expected: Compiles without errors
 
 **Commit:** `feat: implement rpcSession with bidirectional message routing`
+
 <!-- END_TASK_2 -->
 
 <!-- START_TASK_3 -->
-### Task 3: Write session tests for AC2.*
+
+### Task 3: Write session tests for AC2.\*
 
 **Verifies:** bidi-rpc.AC2.1, bidi-rpc.AC2.2, bidi-rpc.AC2.3, bidi-rpc.AC2.4, bidi-rpc.AC2.5, bidi-rpc.AC2.6, bidi-rpc.AC2.7
 
 **Files:**
+
 - Create: `src/__tests__/session.test.ts`
 
 **Testing:**
@@ -342,6 +340,7 @@ Tests must verify each AC listed above:
 - **bidi-rpc.AC2.7:** Each call sends exactly one message (verify transport.send is called once per call, not batched)
 
 Test setup pattern:
+
 ```typescript
 import { describe, it, expect, vi } from "vitest";
 import { rpcSession } from "../session.js";
@@ -359,5 +358,6 @@ Run: `npm run test`
 Expected: All tests pass
 
 **Commit:** `test: add session tests for bidirectional RPC`
+
 <!-- END_TASK_3 -->
 <!-- END_SUBCOMPONENT_A -->

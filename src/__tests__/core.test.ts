@@ -26,9 +26,7 @@ describe("isJsonRpcResponse", () => {
   });
 
   it("accepts null id", () => {
-    expect(isJsonRpcResponse({ jsonrpc: "2.0", id: null, result: "ok" })).toBe(
-      true,
-    );
+    expect(isJsonRpcResponse({ jsonrpc: "2.0", id: null, result: "ok" })).toBe(true);
   });
 
   it("rejects missing jsonrpc", () => {
@@ -36,9 +34,7 @@ describe("isJsonRpcResponse", () => {
   });
 
   it("rejects wrong jsonrpc version", () => {
-    expect(isJsonRpcResponse({ jsonrpc: "1.0", id: 1, result: 42 })).toBe(
-      false,
-    );
+    expect(isJsonRpcResponse({ jsonrpc: "1.0", id: 1, result: 42 })).toBe(false);
   });
 
   it("rejects missing id", () => {
@@ -63,9 +59,7 @@ describe("isJsonRpcResponse", () => {
   });
 
   it("rejects error response with invalid error object", () => {
-    expect(
-      isJsonRpcResponse({ jsonrpc: "2.0", id: 1, error: "not an object" }),
-    ).toBe(false);
+    expect(isJsonRpcResponse({ jsonrpc: "2.0", id: 1, error: "not an object" })).toBe(false);
   });
 });
 
@@ -79,32 +73,24 @@ describe("isJsonRpcRequest", () => {
         id: 1,
         method: "add",
         params: [1, 2],
-      })
+      }),
     ).toBe(true);
   });
 
   it("accepts a valid request without params", () => {
-    expect(
-      isJsonRpcRequest({ jsonrpc: "2.0", id: 1, method: "add" })
-    ).toBe(true);
+    expect(isJsonRpcRequest({ jsonrpc: "2.0", id: 1, method: "add" })).toBe(true);
   });
 
   it("accepts a notification (no id)", () => {
-    expect(
-      isJsonRpcRequest({ jsonrpc: "2.0", method: "notify" })
-    ).toBe(true);
+    expect(isJsonRpcRequest({ jsonrpc: "2.0", method: "notify" })).toBe(true);
   });
 
   it("accepts id: null", () => {
-    expect(
-      isJsonRpcRequest({ jsonrpc: "2.0", id: null, method: "add" })
-    ).toBe(true);
+    expect(isJsonRpcRequest({ jsonrpc: "2.0", id: null, method: "add" })).toBe(true);
   });
 
   it("accepts string id", () => {
-    expect(
-      isJsonRpcRequest({ jsonrpc: "2.0", id: "abc", method: "add" })
-    ).toBe(true);
+    expect(isJsonRpcRequest({ jsonrpc: "2.0", id: "abc", method: "add" })).toBe(true);
   });
 
   it("rejects missing jsonrpc", () => {
@@ -112,9 +98,7 @@ describe("isJsonRpcRequest", () => {
   });
 
   it("rejects wrong jsonrpc version", () => {
-    expect(
-      isJsonRpcRequest({ jsonrpc: "1.0", id: 1, method: "add" })
-    ).toBe(false);
+    expect(isJsonRpcRequest({ jsonrpc: "1.0", id: 1, method: "add" })).toBe(false);
   });
 
   it("rejects missing method", () => {
@@ -122,9 +106,7 @@ describe("isJsonRpcRequest", () => {
   });
 
   it("rejects non-string method", () => {
-    expect(
-      isJsonRpcRequest({ jsonrpc: "2.0", id: 1, method: 123 })
-    ).toBe(false);
+    expect(isJsonRpcRequest({ jsonrpc: "2.0", id: 1, method: 123 })).toBe(false);
   });
 
   it("rejects non-array params (object)", () => {
@@ -134,7 +116,7 @@ describe("isJsonRpcRequest", () => {
         id: 1,
         method: "add",
         params: { a: 1 },
-      })
+      }),
     ).toBe(false);
   });
 
@@ -238,7 +220,7 @@ describe("processRpc single requests", () => {
   it("returns success for a valid call", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", id: 1, method: "add", params: [3, 4] },
-      service
+      service,
     );
     expect(result).toEqual({
       jsonrpc: "2.0",
@@ -250,7 +232,7 @@ describe("processRpc single requests", () => {
   it("returns success for an async method", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", id: 1, method: "asyncAdd", params: [3, 4] },
-      service
+      service,
     );
     expect(result).toEqual({
       jsonrpc: "2.0",
@@ -260,10 +242,7 @@ describe("processRpc single requests", () => {
   });
 
   it("returns method not found for unknown method", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "nonexistent" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "nonexistent" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: 1,
@@ -272,10 +251,7 @@ describe("processRpc single requests", () => {
   });
 
   it("returns error when handler throws", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "throws" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "throws" }, service);
     expect(result).toMatchObject({
       jsonrpc: "2.0",
       id: 1,
@@ -284,10 +260,7 @@ describe("processRpc single requests", () => {
   });
 
   it("extracts code, message, data from thrown errors", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "throwsWithCode" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "throwsWithCode" }, service);
     expect(result).toMatchObject({
       jsonrpc: "2.0",
       id: 1,
@@ -300,10 +273,7 @@ describe("processRpc single requests", () => {
   });
 
   it("rejects rpc.-prefixed methods", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "rpc.discover" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "rpc.discover" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: 1,
@@ -312,10 +282,7 @@ describe("processRpc single requests", () => {
   });
 
   it("rejects Object.prototype methods (constructor)", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "constructor" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "constructor" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: 1,
@@ -324,10 +291,7 @@ describe("processRpc single requests", () => {
   });
 
   it("rejects Object.prototype methods (__proto__)", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "__proto__" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "__proto__" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: 1,
@@ -336,10 +300,7 @@ describe("processRpc single requests", () => {
   });
 
   it("rejects Object.prototype methods (toString)", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "toString" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "toString" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: 1,
@@ -348,10 +309,7 @@ describe("processRpc single requests", () => {
   });
 
   it("rejects Object.prototype methods (hasOwnProperty)", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "hasOwnProperty" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "hasOwnProperty" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: 1,
@@ -360,10 +318,7 @@ describe("processRpc single requests", () => {
   });
 
   it("rejects non-function service properties", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "notAFunction" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "notAFunction" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: 1,
@@ -383,10 +338,7 @@ describe("processRpc single requests", () => {
   });
 
   it("returns Invalid Request for invalid request objects", async () => {
-    const result = await processRpc(
-      { jsonrpc: "1.0", id: 1, method: "add" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "1.0", id: 1, method: "add" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: null,
@@ -397,7 +349,7 @@ describe("processRpc single requests", () => {
   it("rejects named params (object) with -32600", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", id: 1, method: "add", params: { a: 1, b: 2 } },
-      service
+      service,
     );
     expect(result).toEqual({
       jsonrpc: "2.0",
@@ -407,10 +359,7 @@ describe("processRpc single requests", () => {
   });
 
   it("normalizes undefined result to null", async () => {
-    const result = await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "returnsUndefined" },
-      service
-    );
+    const result = await processRpc({ jsonrpc: "2.0", id: 1, method: "returnsUndefined" }, service);
     expect(result).toEqual({
       jsonrpc: "2.0",
       id: 1,
@@ -420,11 +369,7 @@ describe("processRpc single requests", () => {
 
   it("calls onError with HANDLER_ERROR when handler throws", async () => {
     const onError = vi.fn();
-    await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "throws" },
-      service,
-      { onError }
-    );
+    await processRpc({ jsonrpc: "2.0", id: 1, method: "throws" }, service, { onError });
     expect(onError).toHaveBeenCalledOnce();
     expect(onError.mock.calls[0][0]).toBeInstanceOf(RpcProtocolError);
     expect(onError.mock.calls[0][0].code).toBe("HANDLER_ERROR");
@@ -438,10 +383,7 @@ describe("processRpc notifications", () => {
   it("returns null for a notification (no id member)", async () => {
     const fn = vi.fn();
     const svc = { doStuff: fn };
-    const result = await processRpc(
-      { jsonrpc: "2.0", method: "doStuff", params: [1] },
-      svc
-    );
+    const result = await processRpc({ jsonrpc: "2.0", method: "doStuff", params: [1] }, svc);
     expect(result).toBeNull();
     expect(fn).not.toHaveBeenCalled();
   });
@@ -449,7 +391,7 @@ describe("processRpc notifications", () => {
   it("id: null is NOT a notification — must produce a response", async () => {
     const result = await processRpc(
       { jsonrpc: "2.0", id: null, method: "add", params: [1, 2] },
-      service
+      service,
     );
     expect(result).toEqual({
       jsonrpc: "2.0",
@@ -462,11 +404,7 @@ describe("processRpc notifications", () => {
     const onError = vi.fn();
     const fn = vi.fn();
     const svc = { doStuff: fn };
-    await processRpc(
-      { jsonrpc: "2.0", method: "doStuff", params: [1] },
-      svc,
-      { onError }
-    );
+    await processRpc({ jsonrpc: "2.0", method: "doStuff", params: [1] }, svc, { onError });
     expect(fn).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledOnce();
     expect(onError.mock.calls[0][0]).toBeInstanceOf(RpcProtocolError);
@@ -484,7 +422,7 @@ describe("processRpc batch", () => {
         { jsonrpc: "2.0", id: 1, method: "add", params: [1, 2] },
         { jsonrpc: "2.0", id: 2, method: "subtract", params: [5, 3] },
       ],
-      service
+      service,
     );
     expect(result).toEqual([
       { jsonrpc: "2.0", id: 1, result: 3 },
@@ -501,7 +439,7 @@ describe("processRpc batch", () => {
         { jsonrpc: "2.0", method: "logEvent", params: ["test"] },
         { jsonrpc: "2.0", id: 2, method: "subtract", params: [5, 3] },
       ],
-      svc
+      svc,
     );
     expect(result).toEqual([
       { jsonrpc: "2.0", id: 1, result: 3 },
@@ -535,7 +473,7 @@ describe("processRpc batch", () => {
         42,
         { jsonrpc: "2.0", id: 2, method: "subtract", params: [5, 3] },
       ],
-      service
+      service,
     );
     expect(result).toEqual([
       { jsonrpc: "2.0", id: 1, result: 3 },
@@ -553,7 +491,7 @@ describe("processRpc batch", () => {
         { jsonrpc: "2.0", method: "a" },
         { jsonrpc: "2.0", method: "b" },
       ],
-      svc
+      svc,
     );
     expect(result).toBeNull();
     expect(fn1).not.toHaveBeenCalled();
@@ -567,7 +505,7 @@ describe("processRpc batch", () => {
         { jsonrpc: "2.0", id: 2, method: "throws" },
         { jsonrpc: "2.0", id: 3, method: "subtract", params: [5, 3] },
       ],
-      service
+      service,
     );
     expect(result).toHaveLength(3);
     expect((result as any)[0]).toEqual({ jsonrpc: "2.0", id: 1, result: 3 });
@@ -598,7 +536,7 @@ describe("processRpc batch", () => {
         { jsonrpc: "2.0", id: 1, method: "slow" },
         { jsonrpc: "2.0", id: 2, method: "fast" },
       ],
-      svc
+      svc,
     );
     expect(result).toEqual([
       { jsonrpc: "2.0", id: 1, result: "slow" },
@@ -644,11 +582,7 @@ describe("RpcProtocolError", () => {
       },
     };
     const onError = vi.fn();
-    await processRpc(
-      { jsonrpc: "2.0", id: 1, method: "explode" },
-      svc,
-      { onError }
-    );
+    await processRpc({ jsonrpc: "2.0", id: 1, method: "explode" }, svc, { onError });
     expect(onError).toHaveBeenCalledOnce();
     const err = onError.mock.calls[0][0];
     expect(err).toBeInstanceOf(RpcProtocolError);
@@ -658,11 +592,7 @@ describe("RpcProtocolError", () => {
 
   it("NOTIFICATION_RECEIVED includes method name in message", async () => {
     const onError = vi.fn();
-    await processRpc(
-      { jsonrpc: "2.0", method: "myMethod" },
-      { myMethod: vi.fn() },
-      { onError }
-    );
+    await processRpc({ jsonrpc: "2.0", method: "myMethod" }, { myMethod: vi.fn() }, { onError });
     const err = onError.mock.calls[0][0];
     expect(err.code).toBe("NOTIFICATION_RECEIVED");
     expect(err.message).toContain("myMethod");

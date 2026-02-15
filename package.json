@@ -1,6 +1,9 @@
 {
   "name": "@jmorrell/jsonrpc",
   "version": "0.1.0",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     "./client": {
@@ -16,15 +19,20 @@
       "import": "./dist/session.js"
     }
   },
-  "files": ["dist"],
   "scripts": {
     "build": "tsc",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "fast-check": "^4.0.0",
+    "oxfmt": "^0.32.0",
+    "oxlint": "^1.47.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0",
-    "fast-check": "^4.0.0"
+    "vitest": "^3.0.0"
   }
 }
