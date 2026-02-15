@@ -25,32 +25,29 @@ Last verified: 2026-02-14
 ## Project Structure
 
 - `src/core.ts` - Shared types, error classes, and transport-agnostic JSON-RPC 2.0 engine (wire format types, type guards, request/response builders, RpcProtocolError, RPC processor)
-- `src/client.ts` - HTTP client with auto-batching via Proxy (defines client-specific types: RpcTransport, RpcClientOptions, RpcClient)
-- `src/server.ts` - HTTP server wrapper (Request in, Response out)
+- `src/http-batch.ts` - HTTP batch transport: newHttpBatchRpcResponse (server) + newHttpBatchRpcSession (client with auto-batching)
 - `src/session.ts` - Bidirectional RPC over message transports (defines session-specific types: RpcMessageTransport, RpcSessionOptions, RpcSession)
 - `src/__tests__/` - Test files
 - `docs/` - Design documents and implementation plans
 
 ## Package Entry Points
 
-Three public entry points (no barrel index.ts):
+Single public entry point via index.ts:
 
-- `@jmorrell/jsonrpc/client` - rpcClient, RpcError, createRequest, isJsonRpcResponse
-- `@jmorrell/jsonrpc/server` - handleRpc, processRpc, isJsonRpcRequest, RpcProtocolError, RpcProtocolErrorCode
-- `@jmorrell/jsonrpc/session` - rpcSession, RpcError, RpcProtocolError, RpcProtocolErrorCode
+- `@jmorrell/jsonrpc` - newHttpBatchRpcResponse, newHttpBatchRpcSession, RpcError, RpcProtocolError
 
 ## Conventions
 
 - Zero runtime dependencies
 - By-position params only (arrays, not named objects) per JSON-RPC 2.0
-- No barrel index.ts -- consumers import specific entry points
-- core.ts is internal; client, server, session re-export what they need from it
+- Single entry point via index.ts -- consumers import from @jmorrell/jsonrpc
+- core.ts is internal; public API re-exports what consumers need from it
 - Notifications are not supported (ignored server-side, no client API)
 
 ## Module Dependency Rules
 
 - core.ts: no internal imports (leaf module, defines all shared types and logic)
-- client.ts: imports from core.ts
-- server.ts: imports from core.ts
+- http-batch.ts: imports from core.ts
 - session.ts: imports from core.ts
-- No cross-imports between client, server, and session
+- index.ts: re-exports from http-batch.ts and core.ts
+- No cross-imports between http-batch and session
