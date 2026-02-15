@@ -7,6 +7,77 @@ import type {
 } from "./types.js";
 
 /**
+ * Type guard to check if a given object is a valid JSON-RPC response.
+ */
+export function isJsonRpcResponse(res: unknown): res is JsonRpcResponse {
+  if (typeof res !== "object" || res === null) return false;
+  if (!("jsonrpc" in res) || (res as any).jsonrpc !== "2.0") return false;
+  if (
+    !("id" in res) ||
+    (typeof (res as any).id !== "string" &&
+      typeof (res as any).id !== "number" &&
+      (res as any).id !== null)
+  )
+    return false;
+
+  if ("result" in res) {
+    return !("error" in res);
+  } else if ("error" in res) {
+    const error = (res as JsonRpcErrorResponse).error;
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      typeof error.code === "number" &&
+      "message" in error &&
+      typeof error.message === "string"
+    );
+  }
+
+  return false;
+}
+
+/**
+ * Error class thrown when a remote method returns a JSON-RPC error.
+ */
+export class RpcError extends Error {
+  code: number;
+  data?: unknown;
+
+  constructor(message: string, code: number, data?: unknown) {
+    super(message);
+    this.name = "RpcError";
+    this.code = code;
+    this.data = data;
+    Object.setPrototypeOf(this, RpcError.prototype);
+  }
+}
+
+/**
+ * Create a JsonRpcRequest. If idGenerator is undefined, creates a notification (no id).
+ */
+export function createRequest(
+  method: string,
+  params?: unknown[],
+  idGenerator?: () => number | string
+): JsonRpcRequest {
+  const req: JsonRpcRequest = {
+    jsonrpc: "2.0",
+    method,
+  };
+
+  if (idGenerator) {
+    req.id = idGenerator();
+  }
+
+  if (params && params.length > 0) {
+    req.params = params;
+  }
+
+  return req;
+}
+
+/**
  * Type guard to check if a given object is a valid JSON-RPC 2.0 request.
  * Only accepts by-position params (arrays). Named params (objects) are rejected.
  */
