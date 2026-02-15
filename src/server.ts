@@ -1,11 +1,8 @@
-// pattern: Imperative Shell
-
-import type { RpcHandlerOptions } from "./types.js";
+import type { RpcHandlerOptions } from "./core.js";
 import { errorResponse, processRpc } from "./core.js";
 
-export type { RpcHandlerOptions, RpcProtocolErrorCode } from "./types.js";
-export { RpcProtocolError } from "./types.js";
-export { processRpc, isJsonRpcRequest } from "./core.js";
+export type { RpcHandlerOptions, RpcProtocolErrorCode } from "./core.js";
+export { RpcProtocolError, processRpc, isJsonRpcRequest } from "./core.js";
 
 /**
  * HTTP wrapper around processRpc. Takes a Request, returns a Response.
@@ -29,10 +26,13 @@ export async function handleRpc<T>(
   try {
     parsed = JSON.parse(text);
   } catch {
-    return new Response(JSON.stringify(errorResponse(null, -32700, "Parse error")), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify(errorResponse(null, -32700, "Parse error")),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 
   // Process

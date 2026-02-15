@@ -1,4 +1,4 @@
-import type { RpcMessageTransport } from "../types.js";
+import type { RpcMessageTransport } from "../session.js";
 
 export function createLinkedTransports(): [RpcMessageTransport, RpcMessageTransport] {
   let messageHandlerA: ((message: string) => void) | null = null;

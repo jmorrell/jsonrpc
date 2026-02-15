@@ -5,8 +5,8 @@ import {
   createRequest,
   RpcError,
   processRpc,
+  RpcProtocolError,
 } from "../core.js";
-import { RpcProtocolError } from "../types.js";
 
 // --- isJsonRpcResponse ---
 

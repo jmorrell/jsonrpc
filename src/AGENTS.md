@@ -9,32 +9,27 @@ HTTP client (auto-batching), HTTP server, and bidirectional session (WebSocket-s
 
 ## Contracts
 
-### types.ts
-
-- **Exposes**: All shared types and the RpcProtocolError class. Wire format types (JsonRpcRequest, JsonRpcResponse), transport types (RpcTransport, RpcMessageTransport), client/server/session option types, RpcProtocolErrorCode, RpcProtocolError.
-- **Guarantees**: Leaf module with no internal imports. Runtime code limited to simple error classes.
-
 ### core.ts (internal -- not a package entry point)
 
-- **Exposes**: Type guards (isJsonRpcRequest, isJsonRpcResponse), request/response builders (createRequest, errorResponse, successResponse), RpcError class, processRpc dispatcher. Imports RpcProtocolError from types.ts.
-- **Guarantees**: processRpc dispatches methods on a service object, rejects rpc.-prefixed methods (spec-reserved), rejects Object.prototype methods (security), ignores notifications without executing them.
+- **Exposes**: All shared types (JsonRpcRequest, JsonRpcResponse, PromisifyMethods, RpcProtocolErrorCode, RpcHandlerOptions), error classes (RpcError, RpcProtocolError), type guards (isJsonRpcRequest, isJsonRpcResponse), request/response builders (createRequest, errorResponse, successResponse), processRpc dispatcher.
+- **Guarantees**: Leaf module with no internal imports. processRpc dispatches methods on a service object, rejects rpc.-prefixed methods (spec-reserved), rejects Object.prototype methods (security), ignores notifications without executing them.
 - **Expects**: Service object with function properties. By-position params (arrays).
 
 ### client.ts (entry point: @jmorrell/jsonrpc/client)
 
-- **Exposes**: rpcClient<T>() returns a Proxy-based typed client. Re-exports RpcError, createRequest, isJsonRpcResponse from core.
+- **Exposes**: rpcClient<T>() returns a Proxy-based typed client. Defines client-specific types (RpcTransport, RpcFetchOptions, RpcClientOptions, RpcClient). Re-exports RpcError, createRequest, isJsonRpcResponse from core.
 - **Guarantees**: Auto-batches calls in same event loop turn via setTimeout(0). Single calls sent as plain objects (not arrays). RpcError thrown on JSON-RPC error responses.
 - **Expects**: RpcClientOptions (URL string, fetch options, or custom RpcTransport).
 
 ### server.ts (entry point: @jmorrell/jsonrpc/server)
 
-- **Exposes**: handleRpc(request, service, options?) for HTTP. Re-exports processRpc, isJsonRpcRequest from core. Re-exports RpcProtocolError, RpcProtocolErrorCode from types.
+- **Exposes**: handleRpc(request, service, options?) for HTTP. Re-exports processRpc, isJsonRpcRequest, RpcProtocolError, RpcProtocolErrorCode, RpcHandlerOptions from core.
 - **Guarantees**: Non-POST returns 405. Invalid JSON returns -32700. Notifications return 204. All else returns 200 with JSON.
 - **Expects**: Web-standard Request object and a service object.
 
 ### session.ts (entry point: @jmorrell/jsonrpc/session)
 
-- **Exposes**: rpcSession<TRemote, TLocal>(transport, service, options?) returns { remote, close() }. Re-exports RpcProtocolError, RpcProtocolErrorCode from types.
+- **Exposes**: rpcSession<TRemote, TLocal>(transport, service, options?) returns { remote, close() }. Defines session-specific types (RpcMessageTransport, RpcSessionOptions, RpcSession). Re-exports RpcError, RpcProtocolError, RpcProtocolErrorCode from core.
 - **Guarantees**: Bidirectional -- routes incoming messages as requests or responses. Pending calls rejected on close. Role-based ID generation avoids collisions (initiator: positive IDs, acceptor: negative IDs).
 - **Expects**: RpcMessageTransport with send/onMessage/onClose/close. Service object for handling incoming calls.
 
