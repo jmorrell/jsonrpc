@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { processRpc } from "../server.js";
-import type { JsonRpcResponse, JsonRpcErrorResponse } from "../types.js";
+import type { JsonRpcResponse, JsonRpcErrorResponse } from "../core.js";
 
 // Service with methods that handle anything
 const service = {

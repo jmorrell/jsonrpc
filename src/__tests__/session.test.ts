@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { rpcSession, RpcError, RpcProtocolError } from "../session.js";
 import { createLinkedTransports } from "./test-helpers.js";
-import type { RpcMessageTransport } from "../types.js";
+import type { RpcMessageTransport } from "../session.js";
 
 // --- AC2.1: Initiator calls method on acceptor's service ---
 

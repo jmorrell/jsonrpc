@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { rpcClient, RpcError } from "../client.js";
 import { processRpc } from "../server.js";
-import type { RpcTransport } from "../types.js";
+import type { RpcTransport } from "../client.js";
 
 // Service definition
 type CalcService = {

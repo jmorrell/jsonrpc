@@ -1,11 +1,8 @@
-// pattern: Imperative Shell
-
-import type { RpcHandlerOptions } from "./types.js";
+import type { RpcHandlerOptions } from "./core.js";
 import { errorResponse, processRpc } from "./core.js";
 
-export type { RpcHandlerOptions, RpcProtocolErrorCode } from "./types.js";
-export { RpcProtocolError } from "./types.js";
-export { processRpc, isJsonRpcRequest } from "./core.js";
+export type { RpcHandlerOptions, RpcProtocolErrorCode } from "./core.js";
+export { RpcProtocolError, processRpc, isJsonRpcRequest } from "./core.js";
 
 /**
  * HTTP wrapper around processRpc. Takes a Request, returns a Response.

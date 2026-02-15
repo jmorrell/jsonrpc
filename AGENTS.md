@@ -24,11 +24,10 @@ Last verified: 2026-02-14
 
 ## Project Structure
 
-- `src/types.ts` - All shared type definitions and error classes (wire format, transport, session, RpcProtocolError)
-- `src/core.ts` - Transport-agnostic JSON-RPC 2.0 engine (type guards, request/response builders, RPC processor)
-- `src/client.ts` - HTTP client with auto-batching via Proxy
+- `src/core.ts` - Shared types, error classes, and transport-agnostic JSON-RPC 2.0 engine (wire format types, type guards, request/response builders, RpcProtocolError, RPC processor)
+- `src/client.ts` - HTTP client with auto-batching via Proxy (defines client-specific types: RpcTransport, RpcClientOptions, RpcClient)
 - `src/server.ts` - HTTP server wrapper (Request in, Response out)
-- `src/session.ts` - Bidirectional RPC over message transports (WebSocket-style)
+- `src/session.ts` - Bidirectional RPC over message transports (defines session-specific types: RpcMessageTransport, RpcSessionOptions, RpcSession)
 - `src/__tests__/` - Test files
 - `docs/` - Design documents and implementation plans
 
@@ -50,9 +49,8 @@ Three public entry points (no barrel index.ts):
 
 ## Module Dependency Rules
 
-- types.ts: no internal imports (leaf module)
-- core.ts: imports only from types.ts
-- client.ts: imports from types.ts and core.ts
-- server.ts: imports from types.ts and core.ts
-- session.ts: imports from types.ts and core.ts
+- core.ts: no internal imports (leaf module, defines all shared types and logic)
+- client.ts: imports from core.ts
+- server.ts: imports from core.ts
+- session.ts: imports from core.ts
 - No cross-imports between client, server, and session

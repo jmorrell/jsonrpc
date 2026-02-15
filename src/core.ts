@@ -1,13 +1,64 @@
-// pattern: Functional Core
+// JSON-RPC 2.0 wire format types
 
-import { RpcProtocolError } from "./types.js";
-import type {
-  JsonRpcRequest,
-  JsonRpcResponse,
-  JsonRpcErrorResponse,
-  JsonRpcSuccessResponse,
-  RpcHandlerOptions,
-} from "./types.js";
+export type JsonRpcRequest = {
+  jsonrpc: "2.0";
+  id?: string | number | null;
+  method: string;
+  params?: unknown[];
+};
+
+export type JsonRpcSuccessResponse = {
+  jsonrpc: "2.0";
+  id: string | number | null;
+  result: unknown;
+};
+
+export type JsonRpcErrorResponse = {
+  jsonrpc: "2.0";
+  id: string | number | null;
+  error: { code: number; message: string; data?: unknown };
+};
+
+export type JsonRpcResponse = JsonRpcSuccessResponse | JsonRpcErrorResponse;
+
+// Type helpers
+
+type Promisify<T> = T extends (...args: any[]) => Promise<any>
+  ? T
+  : T extends (...args: infer A) => infer R
+    ? (...args: A) => Promise<R>
+    : T;
+
+export type PromisifyMethods<T extends object> = {
+  [K in keyof T]: Promisify<T[K]>;
+};
+
+// Protocol error codes for onError callbacks
+export type RpcProtocolErrorCode =
+  | "PARSE_ERROR" // malformed JSON on transport
+  | "INVALID_MESSAGE" // non-object message received
+  | "UNROUTABLE_MESSAGE" // message is neither request nor response
+  | "INVALID_RESPONSE" // response fails structural validation
+  | "NULL_RESPONSE_ID" // response has null/undefined ID
+  | "UNKNOWN_RESPONSE_ID" // no pending call for response ID
+  | "NOTIFICATION_RECEIVED" // unsupported notification received
+  | "HANDLER_ERROR" // service method threw
+  | "SEND_FAILED"; // transport.send threw
+
+export class RpcProtocolError extends Error {
+  readonly code: RpcProtocolErrorCode;
+
+  constructor(code: RpcProtocolErrorCode, message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "RpcProtocolError";
+    this.code = code;
+    Object.setPrototypeOf(this, RpcProtocolError.prototype);
+  }
+}
+
+export type RpcHandlerOptions = {
+  onError?: (err: RpcProtocolError) => void;
+};
 
 /**
  * Type guard to check if a given object is a valid JSON-RPC response.
@@ -191,7 +242,9 @@ export async function processSingleRequest(
     return successResponse(id, result);
   } catch (err) {
     options?.onError?.(
-      new RpcProtocolError("HANDLER_ERROR", `Handler for "${method}" threw`, { cause: err }),
+      new RpcProtocolError("HANDLER_ERROR", `Handler for "${method}" threw`, {
+        cause: err,
+      }),
     );
     const { code, message, data } = extractError(err);
     return errorResponse(id, code, message, data);

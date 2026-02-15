@@ -1,17 +1,25 @@
-// pattern: Imperative Shell
-
-import type {
-  JsonRpcRequest,
-  JsonRpcResponse,
-  RpcTransport,
-  RpcClientOptions,
-  RpcFetchOptions,
-  RpcClient,
-} from "./types.js";
+import type { JsonRpcRequest, JsonRpcResponse, PromisifyMethods } from "./core.js";
 import { isJsonRpcResponse, RpcError, createRequest } from "./core.js";
 
-export type { RpcTransport, RpcClientOptions, RpcClient } from "./types.js";
 export { isJsonRpcResponse, RpcError, createRequest } from "./core.js";
+
+// Client transport abstraction — takes serialized JSON body, returns serialized JSON response
+export type RpcTransport = (body: string) => Promise<string>;
+
+export type RpcFetchOptions = {
+  url: string;
+  getHeaders?(): Record<string, string> | Promise<Record<string, string>> | undefined;
+};
+
+export type RpcClientOptions =
+  | string
+  | ((RpcFetchOptions | { transport: RpcTransport }) & {
+      getHeaders?: never;
+    })
+  | (RpcFetchOptions & { transport?: never });
+
+// Client proxy type: promisified methods only
+export type RpcClient<T extends object> = PromisifyMethods<T>;
 
 /**
  * Create a fetch-based RpcTransport.

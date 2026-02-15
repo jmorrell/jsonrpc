@@ -1,23 +1,33 @@
-// pattern: Imperative Shell
+import {
+  processRpc,
+  isJsonRpcResponse,
+  createRequest,
+  RpcError,
+  RpcProtocolError,
+} from "./core.js";
+import type { RpcHandlerOptions } from "./core.js";
+import type { JsonRpcErrorResponse, PromisifyMethods } from "./core.js";
 
-import { processRpc, isJsonRpcResponse, createRequest, RpcError } from "./core.js";
-import { RpcProtocolError } from "./types.js";
-import type {
-  RpcMessageTransport,
-  RpcSessionOptions,
-  RpcSession,
-  JsonRpcErrorResponse,
-  RpcHandlerOptions,
-} from "./types.js";
+export { RpcError, RpcProtocolError } from "./core.js";
+export type { RpcProtocolErrorCode } from "./core.js";
 
-export { RpcError } from "./core.js";
-export { RpcProtocolError } from "./types.js";
-export type {
-  RpcMessageTransport,
-  RpcSessionOptions,
-  RpcSession,
-  RpcProtocolErrorCode,
-} from "./types.js";
+// Message-oriented transport for bidirectional connections
+export type RpcMessageTransport = {
+  send(message: string): void;
+  onMessage(handler: (message: string) => void): void;
+  onClose(handler: (reason?: Error) => void): void;
+  close(): void;
+};
+
+export type RpcSessionOptions = {
+  role?: "initiator" | "acceptor"; // default: 'initiator'
+  onError?: (err: RpcProtocolError) => void;
+};
+
+export type RpcSession<TRemote extends object, _TLocal extends object> = {
+  remote: PromisifyMethods<TRemote>;
+  close(): void;
+};
 
 type PendingCall = {
   resolve: (value: unknown) => void;
