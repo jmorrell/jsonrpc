@@ -303,60 +303,10 @@ describe("rpcClient batching", () => {
     await expect(pB).rejects.toThrow(RpcError);
   });
 
-  it("single call + notification in same tick → batch array", async () => {
-    const calls: string[] = [];
-    const transport: RpcTransport = vi.fn(async (body: string) => {
-      calls.push(body);
-      const req = JSON.parse(body);
-      if (Array.isArray(req)) {
-        const responses = req
-          .filter((r: any) => "id" in r)
-          .map((r: any) => ({
-            jsonrpc: "2.0",
-            id: r.id,
-            result: "ok",
-          }));
-        return JSON.stringify(responses);
-      }
-      return JSON.stringify({ jsonrpc: "2.0", id: req.id, result: "ok" });
-    });
-    type Svc = {
-      getData(): string;
-      logEvent(e: string): void;
-    };
+  it("accessing .notify on client returns undefined", async () => {
+    const { transport } = mockTransport();
+    type Svc = { add(a: number, b: number): number };
     const client = rpcClient<Svc>({ transport });
-    const pData = client.getData();
-    const pNotify = client.notify.logEvent("test");
-    await Promise.all([pData, pNotify]);
-    expect(calls).toHaveLength(1);
-    const sent = JSON.parse(calls[0]);
-    expect(Array.isArray(sent)).toBe(true);
-    expect(sent).toHaveLength(2);
-    // One has id, one doesn't
-    const hasId = sent.filter((r: any) => "id" in r);
-    const noId = sent.filter((r: any) => !("id" in r));
-    expect(hasId).toHaveLength(1);
-    expect(noId).toHaveLength(1);
-  });
-
-  it("notify returns Promise<void> that resolves on send", async () => {
-    const transport: RpcTransport = vi.fn(async () => {
-      return JSON.stringify([]);
-    });
-    type Svc = { logEvent(e: string): void };
-    const client = rpcClient<Svc>({ transport });
-    const result = await client.notify.logEvent("test");
-    expect(result).toBeUndefined();
-  });
-
-  it("notify rejects on transport error", async () => {
-    const transport: RpcTransport = vi.fn(async () => {
-      throw new Error("network error");
-    });
-    type Svc = { logEvent(e: string): void };
-    const client = rpcClient<Svc>({ transport });
-    await expect(client.notify.logEvent("test")).rejects.toThrow(
-      "network error"
-    );
+    expect((client as any).notify).toBeUndefined();
   });
 });

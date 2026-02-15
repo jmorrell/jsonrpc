@@ -32,7 +32,7 @@ type Promisify<T> = T extends (...args: any[]) => Promise<any>
     ? (...args: A) => Promise<R>
     : T;
 
-type PromisifyMethods<T extends object> = {
+export type PromisifyMethods<T extends object> = {
   [K in keyof T]: Promisify<T[K]>;
 };
 
@@ -51,14 +51,8 @@ export type RpcFetchOptions = {
     | undefined;
 };
 
-// Client proxy type: methods + notify sub-proxy
-export type RpcClient<T extends object> = PromisifyMethods<T> & {
-  notify: {
-    [K in keyof T]: T[K] extends (...args: infer A) => any
-      ? (...args: A) => Promise<void>
-      : never;
-  };
-};
+// Client proxy type: promisified methods only
+export type RpcClient<T extends object> = PromisifyMethods<T>;
 
 // Server types
 

@@ -40,12 +40,7 @@ type PendingCall = {
   reject: (reason: unknown) => void;
 };
 
-type PendingNotification = {
-  resolve: () => void;
-  reject: (reason: unknown) => void;
-};
-
-const RESERVED_PROPS = new Set(["then", "toJSON", "notify"]);
+const RESERVED_PROPS = new Set(["then", "toJSON"]);
 
 /**
  * Create a typed JSON-RPC 2.0 client with auto-batching.
@@ -65,7 +60,6 @@ export function rpcClient<T extends object>(
 
   let nextId = 1;
   let pendingCalls: PendingCall[] = [];
-  let pendingNotifications: PendingNotification[] = [];
   let pendingRequests: JsonRpcRequest[] = [];
   let flushScheduled = false;
 
@@ -79,16 +73,14 @@ export function rpcClient<T extends object>(
   async function flush() {
     // Grab the current batch
     const calls = pendingCalls;
-    const notifications = pendingNotifications;
     const requests = pendingRequests;
     pendingCalls = [];
-    pendingNotifications = [];
     pendingRequests = [];
     flushScheduled = false;
 
     if (requests.length === 0) return;
 
-    const isSingleRequest = requests.length === 1 && calls.length === 1 && notifications.length === 0;
+    const isSingleRequest = requests.length === 1;
     const body = isSingleRequest
       ? JSON.stringify(requests[0])
       : JSON.stringify(requests);
@@ -96,20 +88,7 @@ export function rpcClient<T extends object>(
     try {
       const responseText = await transport(body);
 
-      // Empty response (e.g. HTTP 204 for notification-only requests)
-      if (!responseText) {
-        for (const n of notifications) {
-          n.resolve();
-        }
-        return;
-      }
-
       const parsed = JSON.parse(responseText);
-
-      // Resolve all notifications (they succeeded because transport didn't throw)
-      for (const n of notifications) {
-        n.resolve();
-      }
 
       if (isSingleRequest) {
         // Single request mode
@@ -176,30 +155,8 @@ export function rpcClient<T extends object>(
       for (const call of calls) {
         call.reject(err);
       }
-      for (const n of notifications) {
-        n.reject(err);
-      }
     }
   }
-
-  // Notify proxy
-  const notifyProxy = new Proxy(
-    {},
-    {
-      get(_target, prop) {
-        if (typeof prop === "symbol") return undefined;
-        if (RESERVED_PROPS.has(prop as string)) return undefined;
-        return (...args: unknown[]) => {
-          const req = createRequest(prop as string, args, undefined);
-          pendingRequests.push(req);
-          return new Promise<void>((resolve, reject) => {
-            pendingNotifications.push({ resolve, reject });
-            scheduleFlush();
-          });
-        };
-      },
-    }
-  );
 
   // Main proxy
   return new Proxy(
@@ -207,8 +164,8 @@ export function rpcClient<T extends object>(
     {
       get(_target, prop) {
         if (typeof prop === "symbol") return undefined;
-        if (prop === "then" || prop === "toJSON") return undefined;
-        if (prop === "notify") return notifyProxy;
+        if (RESERVED_PROPS.has(prop as string)) return undefined;
+        if (prop === "notify") return undefined;
 
         return (...args: unknown[]) => {
           const id = nextId++;
