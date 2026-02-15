@@ -21,6 +21,7 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260214.0",
     "fast-check": "^4.0.0",
     "oxfmt": "^0.32.0",
     "oxlint": "^1.47.0",
