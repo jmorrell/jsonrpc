@@ -153,34 +153,38 @@ export async function processSingleRequest(
   }
 
   const isNotification = !("id" in body);
-  const id = isNotification ? null : (body.id ?? null);
+
+  // Notifications are not supported — ignore without executing
+  if (isNotification) {
+    options?.onError?.(
+      new Error(`Received JSON-RPC notification for method "${body.method}" — notifications are not supported`)
+    );
+    return null;
+  }
+
+  const id = body.id ?? null;
   const { method, params } = body;
 
   // Reject rpc.-prefixed methods (spec-reserved)
   if (method.startsWith("rpc.")) {
-    if (isNotification) return null;
     return errorResponse(id, -32601, "Method not found");
   }
 
   // Reject Object.prototype methods (security)
   if (method in Object.prototype) {
-    if (isNotification) return null;
     return errorResponse(id, -32601, "Method not found");
   }
 
   // Reject non-function service properties
   if (typeof service[method] !== "function") {
-    if (isNotification) return null;
     return errorResponse(id, -32601, "Method not found");
   }
 
   try {
     const result = await service[method](...(params ?? []));
-    if (isNotification) return null;
     return successResponse(id, result);
   } catch (err) {
     options?.onError?.(err);
-    if (isNotification) return null;
     const { code, message, data } = extractError(err);
     return errorResponse(id, code, message, data);
   }
