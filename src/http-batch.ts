@@ -216,3 +216,5 @@ export function newHttpBatchRpcSession<T extends object>(options: RpcClientOptio
     },
   ) as PromisifyMethods<T> & Disposable;
 }
+
+export { RpcError } from "./core.js";

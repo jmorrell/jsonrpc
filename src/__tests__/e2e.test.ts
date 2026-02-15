@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { rpcClient, RpcError } from "../client.js";
-import { processRpc } from "../server.js";
-import type { RpcTransport } from "../client.js";
+import { newHttpBatchRpcSession, RpcError } from "../http-batch.js";
+import { processRpc } from "../core.js";
+import type { RpcTransport } from "../http-batch.js";
 
 // Service definition
 type CalcService = {
@@ -41,14 +41,14 @@ function createInMemoryTransport(service: any): RpcTransport {
 describe("e2e: client → server round trip", () => {
   it("single call", async () => {
     const transport = createInMemoryTransport(calcService);
-    const client = rpcClient<CalcService>({ transport });
+    const client = newHttpBatchRpcSession<CalcService>({ transport });
     const result = await client.add(3, 4);
     expect(result).toBe(7);
   });
 
   it("batch of 3 calls", async () => {
     const transport = createInMemoryTransport(calcService);
-    const client = rpcClient<CalcService>({ transport });
+    const client = newHttpBatchRpcSession<CalcService>({ transport });
     const [a, b, c] = await Promise.all([
       client.add(1, 2),
       client.subtract(10, 3),
@@ -64,14 +64,14 @@ describe("e2e: client → server round trip", () => {
     const svc = { ...calcService, logEvent: logFn };
     const transport = createInMemoryTransport(svc);
     type Svc = typeof calcService;
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     await client.logEvent("page_view");
     expect(logFn).toHaveBeenCalledWith("page_view");
   });
 
   it("error propagation: server throws → client gets RpcError", async () => {
     const transport = createInMemoryTransport(calcService);
-    const client = rpcClient<CalcService>({ transport });
+    const client = newHttpBatchRpcSession<CalcService>({ transport });
     await expect(client.throwError()).rejects.toThrow(RpcError);
     try {
       await client.throwError();
@@ -85,7 +85,7 @@ describe("e2e: client → server round trip", () => {
 
   it("batch with mixed success/error", async () => {
     const transport = createInMemoryTransport(calcService);
-    const client = rpcClient<CalcService>({ transport });
+    const client = newHttpBatchRpcSession<CalcService>({ transport });
     const pAdd = client.add(1, 2);
     const pThrow = client.throwError();
     const pSub = client.subtract(5, 3);
@@ -97,7 +97,7 @@ describe("e2e: client → server round trip", () => {
 
   it("method not found propagates as RpcError", async () => {
     const transport = createInMemoryTransport(calcService);
-    const client = rpcClient<{ nonexistent(): void }>({ transport });
+    const client = newHttpBatchRpcSession<{ nonexistent(): void }>({ transport });
     await expect(client.nonexistent()).rejects.toThrow(RpcError);
     try {
       await client.nonexistent();
