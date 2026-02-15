@@ -1,5 +1,5 @@
 import type { RpcHandlerOptions } from "./types.js";
-import { isJsonRpcRequest, errorResponse, processRpc } from "./core.js";
+import { errorResponse, processRpc } from "./core.js";
 
 export type { RpcHandlerOptions } from "./types.js";
 export { processRpc, isJsonRpcRequest } from "./core.js";
