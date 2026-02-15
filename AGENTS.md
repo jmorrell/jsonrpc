@@ -5,6 +5,7 @@ Last verified: 2026-02-14
 ## Tech Stack
 
 - Language: TypeScript 5.x (ES2022 target, ESM)
+- Formatting: oxfmt (config in .oxfmtrc.json)
 - Testing: Vitest, fast-check (property-based)
 - Build: tsc (declarations + JS output to dist/)
 - Runtime target: Cloudflare Workers (uses Web APIs: Request, Response, fetch)
@@ -12,6 +13,8 @@ Last verified: 2026-02-14
 ## Commands
 
 - `npm run build` - Compile TypeScript to dist/
+- `npm run fmt` - Format all files (oxfmt)
+- `npm run fmt:check` - Check formatting without modifying files
 - `npm run test` - Run tests (vitest run)
 - `npm run test:watch` - Watch mode
 
