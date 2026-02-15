@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { rpcClient, RpcError } from "../client.js";
-import type { RpcTransport } from "../client.js";
+import { newHttpBatchRpcSession, RpcError } from "../http-batch.js";
+import type { RpcTransport } from "../http-batch.js";
 
 // --- Client batching tests ---
 
-describe("rpcClient batching", () => {
+describe("newHttpBatchRpcSession batching", () => {
   function mockTransport(): { transport: RpcTransport; calls: string[] } {
     const calls: string[] = [];
     const transport: RpcTransport = vi.fn(async (body: string) => {
@@ -33,7 +33,7 @@ describe("rpcClient batching", () => {
   it("single call sends single object (not array)", async () => {
     const { transport, calls } = mockTransport();
     type Svc = { add(a: number, b: number): number };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     const result = await client.add(1, 2);
     expect(result).toBe("result-add");
     expect(calls).toHaveLength(1);
@@ -48,7 +48,7 @@ describe("rpcClient batching", () => {
       add(a: number, b: number): number;
       sub(a: number, b: number): number;
     };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     const [a, b] = await Promise.all([client.add(1, 2), client.sub(3, 1)]);
     expect(a).toBe("result-add");
     expect(b).toBe("result-sub");
@@ -64,7 +64,7 @@ describe("rpcClient batching", () => {
       add(a: number, b: number): number;
       sub(a: number, b: number): number;
     };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     await client.add(1, 2);
     await client.sub(3, 1);
     expect(calls).toHaveLength(2);
@@ -82,7 +82,7 @@ describe("rpcClient batching", () => {
       return JSON.stringify(responses);
     });
     type Svc = { add(a: number, b: number): number };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     const [a, b] = await Promise.all([client.add(1, 2), client.add(10, 20)]);
     expect(a).toBe(3);
     expect(b).toBe(30);
@@ -104,7 +104,7 @@ describe("rpcClient batching", () => {
       return JSON.stringify(responses);
     });
     type Svc = { ok(): string; fail(): string };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     const pOk = client.ok();
     const pFail = client.fail();
     expect(await pOk).toBe("ok");
@@ -120,7 +120,7 @@ describe("rpcClient batching", () => {
       throw new Error("network error");
     });
     type Svc = { a(): string; b(): string };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     const pA = client.a();
     const pB = client.b();
     await expect(pA).rejects.toThrow("network error");
@@ -134,7 +134,7 @@ describe("rpcClient batching", () => {
       return JSON.stringify([{ jsonrpc: "2.0", id: req[0].id, result: "ok" }]);
     });
     type Svc = { a(): string; b(): string };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     const pA = client.a();
     const pB = client.b();
     expect(await pA).toBe("ok");
@@ -151,7 +151,7 @@ describe("rpcClient batching", () => {
       ]);
     });
     type Svc = { a(): string; b(): string };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     const [a, b] = await Promise.all([client.a(), client.b()]);
     expect(a).toBe("ok");
     expect(b).toBe("also ok");
@@ -162,7 +162,7 @@ describe("rpcClient batching", () => {
       return JSON.stringify({ jsonrpc: "2.0", id: 99999, result: "wrong" });
     });
     type Svc = { a(): string };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     await expect(client.a()).rejects.toThrow();
   });
 
@@ -175,7 +175,7 @@ describe("rpcClient batching", () => {
       });
     });
     type Svc = { a(): string; b(): string };
-    const client = rpcClient<Svc>({ transport });
+    const client = newHttpBatchRpcSession<Svc>({ transport });
     const pA = client.a();
     const pB = client.b();
     await expect(pA).rejects.toThrow(RpcError);
