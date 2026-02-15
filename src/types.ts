@@ -95,7 +95,7 @@ export type RpcSessionOptions = {
   onError?: (err: RpcProtocolError) => void;
 };
 
-export type RpcSession<TRemote extends object, TLocal extends object> = {
+export type RpcSession<TRemote extends object, _TLocal extends object> = {
   remote: PromisifyMethods<TRemote>;
   close(): void;
 };

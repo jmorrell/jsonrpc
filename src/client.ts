@@ -3,7 +3,6 @@
 import type {
   JsonRpcRequest,
   JsonRpcResponse,
-  JsonRpcErrorResponse,
   RpcTransport,
   RpcClientOptions,
   RpcFetchOptions,

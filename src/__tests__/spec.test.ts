@@ -6,7 +6,7 @@ const service = {
   subtract(a: number, b: number) {
     return a - b;
   },
-  update(...args: any[]) {
+  update(..._args: any[]) {
     // no return
   },
   foobar() {
@@ -18,10 +18,10 @@ const service = {
   get_data() {
     return ["hello", 5];
   },
-  notify_hello(x: number) {
+  notify_hello(_x: number) {
     // notification handler
   },
-  notify_sum(...args: number[]) {
+  notify_sum(..._args: number[]) {
     // notification handler
   },
 };
@@ -217,7 +217,7 @@ describe("spec examples (adapted for by-position params only)", () => {
 
     // foo.get → Invalid Request because params is object (named params)
     // Actually foo.get has object params, which our lib rejects
-    const fooGet = arr.find((r: any) => r.id === "5");
+    const _fooGet = arr.find((r: any) => r.id === "5");
     // This will be Invalid Request because params is an object
     // But wait - id "5" won't be in the response because isJsonRpcRequest fails (params is object)
     // So it gets id: null. Let me reconsider...

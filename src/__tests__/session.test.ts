@@ -749,7 +749,7 @@ describe("Session behavior", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const _sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
 
     const callPromise = (sessionA.remote as any).slowMethod();
 
