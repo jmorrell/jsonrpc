@@ -91,7 +91,7 @@ const RESERVED_PROPS = new Set(["then", "toJSON"]);
 /**
  * Create a typed JSON-RPC 2.0 client with auto-batching over HTTP.
  */
-export function newHttpBatchRpcSession<T extends object>(options: RpcClientOptions): PromisifyMethods<T> {
+export function newHttpBatchRpcSession<T extends object>(options: RpcClientOptions): PromisifyMethods<T> & Disposable {
   let transport: RpcTransport;
 
   if (typeof options === "string") {
@@ -196,6 +196,9 @@ export function newHttpBatchRpcSession<T extends object>(options: RpcClientOptio
     {},
     {
       get(_target, prop) {
+        if (prop === Symbol.dispose) {
+          return () => {};
+        }
         if (typeof prop === "symbol") return undefined;
         if (RESERVED_PROPS.has(prop as string)) return undefined;
         if (prop === "notify") return undefined;
@@ -211,5 +214,5 @@ export function newHttpBatchRpcSession<T extends object>(options: RpcClientOptio
         };
       },
     },
-  ) as PromisifyMethods<T>;
+  ) as PromisifyMethods<T> & Disposable;
 }
