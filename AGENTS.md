@@ -9,6 +9,7 @@ Last verified: 2026-02-14
 - Linting: oxlint (default correctness rules)
 - Testing: Vitest, fast-check (property-based)
 - Build: tsc (declarations + JS output to dist/)
+- CI: GitHub Actions (fmt:check, lint, build, test on PRs and pushes to main)
 - Runtime target: Cloudflare Workers (uses Web APIs: Request, Response, fetch)
 
 ## Commands
