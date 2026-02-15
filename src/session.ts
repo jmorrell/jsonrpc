@@ -6,6 +6,9 @@ import {
   createRequest,
   RpcError,
 } from "./core.js";
+import {
+  RpcProtocolError,
+} from "./types.js";
 import type {
   RpcMessageTransport,
   RpcSessionOptions,
@@ -15,10 +18,12 @@ import type {
 } from "./types.js";
 
 export { RpcError } from "./core.js";
+export { RpcProtocolError } from "./types.js";
 export type {
   RpcMessageTransport,
   RpcSessionOptions,
   RpcSession,
+  RpcProtocolErrorCode,
 } from "./types.js";
 
 type PendingCall = {
@@ -51,12 +56,12 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
     try {
       parsed = JSON.parse(message);
     } catch (err) {
-      onError?.(err);
+      onError?.(new RpcProtocolError("PARSE_ERROR", "Failed to parse JSON-RPC message", { cause: err }));
       return;
     }
 
     if (typeof parsed !== "object" || parsed === null) {
-      onError?.(new Error("Received non-object JSON-RPC message"));
+      onError?.(new RpcProtocolError("INVALID_MESSAGE", "Received non-object JSON-RPC message"));
       return;
     }
 
@@ -75,7 +80,7 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
     }
 
     // Neither request nor response
-    onError?.(new Error("Received unroutable JSON-RPC message"));
+    onError?.(new RpcProtocolError("UNROUTABLE_MESSAGE", "Received unroutable JSON-RPC message"));
   });
 
   // --- Handle incoming request ---
@@ -87,26 +92,26 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
     try {
       transport.send(JSON.stringify(response));
     } catch (err) {
-      onError?.(err);
+      onError?.(new RpcProtocolError("SEND_FAILED", "Failed to send JSON-RPC response", { cause: err }));
     }
   }
 
   // --- Handle incoming response ---
   function handleIncomingResponse(parsed: unknown): void {
     if (!isJsonRpcResponse(parsed)) {
-      onError?.(new Error("Received invalid JSON-RPC response"));
+      onError?.(new RpcProtocolError("INVALID_RESPONSE", "Received invalid JSON-RPC response"));
       return;
     }
 
     const id = parsed.id;
     if (id === null || id === undefined) {
-      onError?.(new Error("Received response with null/undefined ID"));
+      onError?.(new RpcProtocolError("NULL_RESPONSE_ID", "Received response with null/undefined ID"));
       return;
     }
 
     const pending = pendingCalls.get(id);
     if (!pending) {
-      onError?.(new Error(`Received response for unknown ID: ${id}`));
+      onError?.(new RpcProtocolError("UNKNOWN_RESPONSE_ID", `Received response for unknown ID: ${id}`));
       return;
     }
 

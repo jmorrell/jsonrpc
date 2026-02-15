@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { rpcSession, RpcError } from "../session.js";
+import { rpcSession, RpcError, RpcProtocolError } from "../session.js";
 import { createLinkedTransports } from "./test-helpers.js";
 import type { RpcMessageTransport } from "../types.js";
 
@@ -626,8 +626,9 @@ describe("session lifecycle (AC3.1-AC3.4)", () => {
 
     // Verify error was logged via onError (send failed because transport is closed)
     expect(onErrorCalled).toBe(true);
-    expect(errorLogged).toBeInstanceOf(Error);
-    expect((errorLogged as Error).message).toContain("Transport is closed");
+    expect(errorLogged).toBeInstanceOf(RpcProtocolError);
+    expect((errorLogged as RpcProtocolError).code).toBe("SEND_FAILED");
+    expect((errorLogged as RpcProtocolError).cause).toBeInstanceOf(Error);
 
     sessionA.close();
     sessionB.close();
@@ -797,7 +798,9 @@ describe("session error resilience", () => {
 
       // Verify error was logged
       expect(errors.length).toBe(1);
-      expect(errors[0]).toBeInstanceOf(SyntaxError);
+      expect(errors[0]).toBeInstanceOf(RpcProtocolError);
+      expect((errors[0] as RpcProtocolError).code).toBe("PARSE_ERROR");
+      expect((errors[0] as RpcProtocolError).cause).toBeInstanceOf(SyntaxError);
 
       // Verify session still works - make a successful call
       const result = await (sessionA.remote as any).echo("test");
@@ -842,7 +845,8 @@ describe("session error resilience", () => {
 
       // Verify error was logged
       expect(errors.length).toBe(1);
-      expect(errors[0]).toBeInstanceOf(Error);
+      expect(errors[0]).toBeInstanceOf(RpcProtocolError);
+      expect((errors[0] as RpcProtocolError).code).toBe("UNKNOWN_RESPONSE_ID");
       expect((errors[0] as Error).message).toContain("unknown ID");
 
       // Verify session still works - make a successful call
@@ -887,8 +891,8 @@ describe("session error resilience", () => {
 
       // Verify error was logged
       expect(errors.length).toBe(1);
-      expect(errors[0]).toBeInstanceOf(Error);
-      expect((errors[0] as Error).message).toContain("unroutable");
+      expect(errors[0]).toBeInstanceOf(RpcProtocolError);
+      expect((errors[0] as RpcProtocolError).code).toBe("UNROUTABLE_MESSAGE");
 
       // Verify session still works - make a successful call
       const result = await (sessionA.remote as any).echo("test");
@@ -1020,9 +1024,107 @@ describe("session error resilience", () => {
       // Verify error was logged (from initiator's onError)
       const initiatorErrors = errors;
       expect(initiatorErrors.length).toBeGreaterThan(0);
-      expect(initiatorErrors.some((err) =>
-        (err as Error).message?.includes("notification")
-      )).toBe(true);
+      const notifError = initiatorErrors.find((err) => err instanceof RpcProtocolError && err.code === "NOTIFICATION_RECEIVED");
+      expect(notifError).toBeDefined();
+      expect((notifError as RpcProtocolError).message).toContain("notification");
+
+      sessionA.close();
+      sessionB.close();
+    });
+  });
+
+  // AC4.6: Invalid message (non-object)
+  describe("AC4.6: Non-object message", () => {
+    it("non-object JSON is logged via onError with INVALID_MESSAGE code", async () => {
+      const [transportA, transportB] = createLinkedTransports();
+
+      const errors: unknown[] = [];
+      const sessionA = rpcSession(transportA, {}, {
+        role: "initiator",
+        onError(err) {
+          errors.push(err);
+        },
+      });
+
+      const sessionB = rpcSession(transportB, { echo: (v: string) => Promise.resolve(v) }, { role: "acceptor" });
+
+      // Inject a non-object JSON value (a plain string)
+      transportB.send(JSON.stringify("just a string"));
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(errors.length).toBe(1);
+      expect(errors[0]).toBeInstanceOf(RpcProtocolError);
+      expect((errors[0] as RpcProtocolError).code).toBe("INVALID_MESSAGE");
+
+      // Session still works
+      const result = await (sessionA.remote as any).echo("ok");
+      expect(result).toBe("ok");
+
+      sessionA.close();
+      sessionB.close();
+    });
+  });
+
+  // AC4.7: Invalid response shape
+  describe("AC4.7: Invalid response", () => {
+    it("response that fails type guard is logged with INVALID_RESPONSE code", async () => {
+      const [transportA, transportB] = createLinkedTransports();
+
+      const errors: unknown[] = [];
+      const sessionA = rpcSession(transportA, {}, {
+        role: "initiator",
+        onError(err) {
+          errors.push(err);
+        },
+      });
+
+      const sessionB = rpcSession(transportB, { echo: (v: string) => Promise.resolve(v) }, { role: "acceptor" });
+
+      // Inject a response-like object that fails the type guard (missing jsonrpc version)
+      transportB.send(JSON.stringify({
+        id: 1,
+        result: "bad",
+      }));
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(errors.length).toBe(1);
+      expect(errors[0]).toBeInstanceOf(RpcProtocolError);
+      expect((errors[0] as RpcProtocolError).code).toBe("INVALID_RESPONSE");
+
+      sessionA.close();
+      sessionB.close();
+    });
+  });
+
+  // AC4.8: Null response ID
+  describe("AC4.8: Null response ID", () => {
+    it("response with null ID is logged with NULL_RESPONSE_ID code", async () => {
+      const [transportA, transportB] = createLinkedTransports();
+
+      const errors: unknown[] = [];
+      const sessionA = rpcSession(transportA, {}, {
+        role: "initiator",
+        onError(err) {
+          errors.push(err);
+        },
+      });
+
+      const sessionB = rpcSession(transportB, { echo: (v: string) => Promise.resolve(v) }, { role: "acceptor" });
+
+      // Inject a response with null ID
+      transportB.send(JSON.stringify({
+        jsonrpc: "2.0",
+        id: null,
+        result: "orphan",
+      }));
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(errors.length).toBe(1);
+      expect(errors[0]).toBeInstanceOf(RpcProtocolError);
+      expect((errors[0] as RpcProtocolError).code).toBe("NULL_RESPONSE_ID");
 
       sessionA.close();
       sessionB.close();
@@ -1075,8 +1177,13 @@ describe("session error resilience", () => {
     // Wait for all errors to be processed
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    // Verify errors were logged
-    expect(errorLog.length).toBeGreaterThanOrEqual(3); // At least syntax, unknown ID, unroutable
+    // Verify errors were logged with correct codes
+    expect(errorLog.length).toBe(4);
+    const codes = errorLog.map((e) => (e as RpcProtocolError).code);
+    expect(codes).toContain("PARSE_ERROR");
+    expect(codes).toContain("UNKNOWN_RESPONSE_ID");
+    expect(codes).toContain("UNROUTABLE_MESSAGE");
+    expect(codes).toContain("NOTIFICATION_RECEIVED");
 
     // Verify session still works - make multiple successful calls
     const result1 = await (sessionA.remote as any).echo("recovery1");

@@ -3,7 +3,8 @@
 import type { RpcHandlerOptions } from "./types.js";
 import { errorResponse, processRpc } from "./core.js";
 
-export type { RpcHandlerOptions } from "./types.js";
+export type { RpcHandlerOptions, RpcProtocolErrorCode } from "./types.js";
+export { RpcProtocolError } from "./types.js";
 export { processRpc, isJsonRpcRequest } from "./core.js";
 
 /**

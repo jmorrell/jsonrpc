@@ -1,5 +1,8 @@
 // pattern: Functional Core
 
+import {
+  RpcProtocolError,
+} from "./types.js";
 import type {
   JsonRpcRequest,
   JsonRpcResponse,
@@ -159,7 +162,7 @@ export async function processSingleRequest(
   // Notifications are not supported — ignore without executing
   if (isNotification) {
     options?.onError?.(
-      new Error(`Received JSON-RPC notification for method "${body.method}" — notifications are not supported`)
+      new RpcProtocolError("NOTIFICATION_RECEIVED", `Received JSON-RPC notification for method "${body.method}" — notifications are not supported`)
     );
     return null;
   }
@@ -186,7 +189,9 @@ export async function processSingleRequest(
     const result = await service[method](...(params ?? []));
     return successResponse(id, result);
   } catch (err) {
-    options?.onError?.(err);
+    options?.onError?.(
+      new RpcProtocolError("HANDLER_ERROR", `Handler for "${method}" threw`, { cause: err })
+    );
     const { code, message, data } = extractError(err);
     return errorResponse(id, code, message, data);
   }

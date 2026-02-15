@@ -6,6 +6,7 @@ import {
   RpcError,
   processRpc,
 } from "../core.js";
+import { RpcProtocolError } from "../types.js";
 
 // --- isJsonRpcResponse ---
 
@@ -417,7 +418,7 @@ describe("processRpc single requests", () => {
     });
   });
 
-  it("calls onError when handler throws", async () => {
+  it("calls onError with HANDLER_ERROR when handler throws", async () => {
     const onError = vi.fn();
     await processRpc(
       { jsonrpc: "2.0", id: 1, method: "throws" },
@@ -425,7 +426,9 @@ describe("processRpc single requests", () => {
       { onError }
     );
     expect(onError).toHaveBeenCalledOnce();
-    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(RpcProtocolError);
+    expect(onError.mock.calls[0][0].code).toBe("HANDLER_ERROR");
+    expect(onError.mock.calls[0][0].cause).toBeInstanceOf(Error);
   });
 });
 
@@ -455,7 +458,7 @@ describe("processRpc notifications", () => {
     });
   });
 
-  it("logs warning via onError when notification received", async () => {
+  it("logs NOTIFICATION_RECEIVED via onError when notification received", async () => {
     const onError = vi.fn();
     const fn = vi.fn();
     const svc = { doStuff: fn };
@@ -466,7 +469,8 @@ describe("processRpc notifications", () => {
     );
     expect(fn).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledOnce();
-    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(RpcProtocolError);
+    expect(onError.mock.calls[0][0].code).toBe("NOTIFICATION_RECEIVED");
     expect(onError.mock.calls[0][0].message).toContain("notification");
   });
 });
@@ -603,5 +607,64 @@ describe("processRpc batch", () => {
     // Both start before slow finishes
     expect(order[0]).toBe(1);
     expect(order[1]).toBe(2);
+  });
+});
+
+// --- RpcProtocolError ---
+
+describe("RpcProtocolError", () => {
+  it("extends Error and has correct name", () => {
+    const err = new RpcProtocolError("PARSE_ERROR", "bad json");
+    expect(err).toBeInstanceOf(Error);
+    expect(err).toBeInstanceOf(RpcProtocolError);
+    expect(err.name).toBe("RpcProtocolError");
+  });
+
+  it("stores the error code", () => {
+    const err = new RpcProtocolError("HANDLER_ERROR", "handler threw");
+    expect(err.code).toBe("HANDLER_ERROR");
+  });
+
+  it("stores the cause when provided", () => {
+    const cause = new TypeError("original");
+    const err = new RpcProtocolError("SEND_FAILED", "send failed", { cause });
+    expect(err.cause).toBe(cause);
+  });
+
+  it("cause is undefined when not provided", () => {
+    const err = new RpcProtocolError("UNROUTABLE_MESSAGE", "bad msg");
+    expect(err.cause).toBeUndefined();
+  });
+
+  it("HANDLER_ERROR wraps the original error as cause", async () => {
+    const originalError = new Error("kaboom");
+    const svc = {
+      explode() {
+        throw originalError;
+      },
+    };
+    const onError = vi.fn();
+    await processRpc(
+      { jsonrpc: "2.0", id: 1, method: "explode" },
+      svc,
+      { onError }
+    );
+    expect(onError).toHaveBeenCalledOnce();
+    const err = onError.mock.calls[0][0];
+    expect(err).toBeInstanceOf(RpcProtocolError);
+    expect(err.code).toBe("HANDLER_ERROR");
+    expect(err.cause).toBe(originalError);
+  });
+
+  it("NOTIFICATION_RECEIVED includes method name in message", async () => {
+    const onError = vi.fn();
+    await processRpc(
+      { jsonrpc: "2.0", method: "myMethod" },
+      { myMethod: vi.fn() },
+      { onError }
+    );
+    const err = onError.mock.calls[0][0];
+    expect(err.code).toBe("NOTIFICATION_RECEIVED");
+    expect(err.message).toContain("myMethod");
   });
 });

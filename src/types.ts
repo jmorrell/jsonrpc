@@ -55,10 +55,33 @@ export type RpcFetchOptions = {
 // Client proxy type: promisified methods only
 export type RpcClient<T extends object> = PromisifyMethods<T>;
 
+// Protocol error codes for onError callbacks
+export type RpcProtocolErrorCode =
+  | "PARSE_ERROR"           // malformed JSON on transport
+  | "INVALID_MESSAGE"       // non-object message received
+  | "UNROUTABLE_MESSAGE"    // message is neither request nor response
+  | "INVALID_RESPONSE"      // response fails structural validation
+  | "NULL_RESPONSE_ID"      // response has null/undefined ID
+  | "UNKNOWN_RESPONSE_ID"   // no pending call for response ID
+  | "NOTIFICATION_RECEIVED" // unsupported notification received
+  | "HANDLER_ERROR"         // service method threw
+  | "SEND_FAILED";          // transport.send threw
+
+export class RpcProtocolError extends Error {
+  readonly code: RpcProtocolErrorCode;
+
+  constructor(code: RpcProtocolErrorCode, message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "RpcProtocolError";
+    this.code = code;
+    Object.setPrototypeOf(this, RpcProtocolError.prototype);
+  }
+}
+
 // Server types
 
 export type RpcHandlerOptions = {
-  onError?: (err: unknown) => void;
+  onError?: (err: RpcProtocolError) => void;
 };
 
 // Message-oriented transport for bidirectional connections
@@ -72,7 +95,7 @@ export type RpcMessageTransport = {
 // Session types
 export type RpcSessionOptions = {
   role?: 'initiator' | 'acceptor'; // default: 'initiator'
-  onError?: (err: unknown) => void;
+  onError?: (err: RpcProtocolError) => void;
 };
 
 export type RpcSession<TRemote extends object, TLocal extends object> = {

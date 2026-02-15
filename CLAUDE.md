@@ -14,7 +14,7 @@ Last verified: 2026-02-14
 - `npm run test:watch` - Watch mode
 
 ## Project Structure
-- `src/types.ts` - All shared type definitions (wire format, transport, session)
+- `src/types.ts` - All shared type definitions and error classes (wire format, transport, session, RpcProtocolError)
 - `src/core.ts` - Transport-agnostic JSON-RPC 2.0 engine (type guards, request/response builders, RPC processor)
 - `src/client.ts` - HTTP client with auto-batching via Proxy
 - `src/server.ts` - HTTP server wrapper (Request in, Response out)
@@ -25,8 +25,8 @@ Last verified: 2026-02-14
 ## Package Entry Points
 Three public entry points (no barrel index.ts):
 - `@jmorrell/jsonrpc/client` - rpcClient, RpcError, createRequest, isJsonRpcResponse
-- `@jmorrell/jsonrpc/server` - handleRpc, processRpc, isJsonRpcRequest
-- `@jmorrell/jsonrpc/session` - rpcSession, RpcError
+- `@jmorrell/jsonrpc/server` - handleRpc, processRpc, isJsonRpcRequest, RpcProtocolError, RpcProtocolErrorCode
+- `@jmorrell/jsonrpc/session` - rpcSession, RpcError, RpcProtocolError, RpcProtocolErrorCode
 
 ## Conventions
 - Zero runtime dependencies
