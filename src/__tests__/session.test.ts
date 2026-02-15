@@ -465,6 +465,237 @@ describe("AC2.7: Messages sent individually", () => {
   });
 });
 
+// --- AC3: Connection lifecycle ---
+
+describe("session lifecycle (AC3.1-AC3.4)", () => {
+  // AC3.1: Transport closes, pending calls reject with close reason
+  it("AC3.1: when transport closes, pending outgoing calls reject with close reason", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const acceptorService = {
+      slowMethod(): Promise<string> {
+        return new Promise(() => {
+          // Never resolves - keeps call pending
+        });
+      },
+    };
+
+    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+
+    // Start a call that will remain pending
+    const callPromise = (sessionA.remote as any).slowMethod();
+
+    // Give transport a moment to send the message
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    // Close transport from the acceptor side
+    transportB.close();
+
+    // The pending call should reject with the close reason
+    try {
+      await callPromise;
+      expect.fail("Call should have rejected");
+    } catch (err) {
+      expect(err).toBeInstanceOf(Error);
+      expect((err as Error).message).toContain("Connection closed");
+    }
+
+    sessionA.close();
+    sessionB.close();
+  });
+
+  // AC3.2: session.close() rejects pending calls and calls transport.close()
+  it("AC3.2: session.close() rejects pending calls and calls transport.close()", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const acceptorService = {
+      slowMethod(): Promise<string> {
+        return new Promise(() => {
+          // Never resolves - keeps call pending
+        });
+      },
+    };
+
+    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+
+    // Spy on transport.close()
+    const transportCloseSpy = vi.spyOn(transportA, "close");
+
+    // Start a call that will remain pending
+    const callPromise = (sessionA.remote as any).slowMethod();
+
+    // Give transport a moment to send the message
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    // Close session
+    sessionA.close();
+
+    // Pending call should reject
+    try {
+      await callPromise;
+      expect.fail("Call should have rejected");
+    } catch (err) {
+      expect((err as Error).message).toBe("Session closed");
+    }
+
+    // transport.close() should have been called
+    expect(transportCloseSpy).toHaveBeenCalled();
+
+    sessionB.close();
+  });
+
+  // AC3.3: Calling session.remote.method() after close rejects immediately
+  it("AC3.3: calling session.remote.method() after close rejects immediately", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+
+    // Close the session
+    sessionA.close();
+
+    // Try to call a method after close
+    try {
+      await (sessionA.remote as any).someMethod();
+      expect.fail("Call should have rejected immediately");
+    } catch (err) {
+      expect((err as Error).message).toBe("Session is closed");
+    }
+
+    sessionB.close();
+  });
+
+  // AC3.4: Transport closes during service method execution, response send failure is handled gracefully
+  it("AC3.4: transport close during async service method execution doesn't crash", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    let methodStarted = false;
+    let methodCompleted = false;
+
+    const acceptorService = {
+      slowAsyncMethod(): Promise<string> {
+        return new Promise((resolve) => {
+          methodStarted = true;
+          // Simulate slow async operation
+          setTimeout(() => {
+            methodCompleted = true;
+            resolve("done");
+          }, 100);
+        });
+      },
+    };
+
+    let onErrorCalled = false;
+    let errorLogged: Error | null = null;
+
+    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+      onError(err) {
+        onErrorCalled = true;
+        errorLogged = err as Error;
+      },
+    });
+
+    // Start the call
+    const callPromise = (sessionA.remote as any).slowAsyncMethod();
+
+    // Wait for method to start
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(methodStarted).toBe(true);
+
+    // Close transport while method is still executing
+    transportB.close();
+
+    // The original call should reject because transport is closed
+    try {
+      await callPromise;
+      expect.fail("Call should have rejected");
+    } catch (err) {
+      expect((err as Error).message).toContain("Connection closed");
+    }
+
+    // Wait a bit more for method to complete and attempt send
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // Verify method completed
+    expect(methodCompleted).toBe(true);
+
+    // Verify error was logged via onError (send failed because transport is closed)
+    expect(onErrorCalled).toBe(true);
+    expect(errorLogged).toBeInstanceOf(Error);
+    expect((errorLogged as Error).message).toContain("Transport is closed");
+
+    sessionA.close();
+    sessionB.close();
+  });
+
+  // Additional test: Multiple pending calls all reject when transport closes
+  it("multiple pending calls all reject when transport closes", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const acceptorService = {
+      slowMethod(): Promise<string> {
+        return new Promise(() => {
+          // Never resolves
+        });
+      },
+    };
+
+    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+
+    // Start multiple pending calls
+    const call1 = (sessionA.remote as any).slowMethod();
+    const call2 = (sessionA.remote as any).slowMethod();
+    const call3 = (sessionA.remote as any).slowMethod();
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    // Close transport
+    transportB.close();
+
+    // All pending calls should reject
+    const results = await Promise.allSettled([call1, call2, call3]);
+
+    expect(results).toHaveLength(3);
+    results.forEach((result) => {
+      expect(result.status).toBe("rejected");
+      if (result.status === "rejected") {
+        expect((result.reason as Error).message).toContain("Connection closed");
+      }
+    });
+
+    sessionA.close();
+    sessionB.close();
+  });
+
+  // Additional test: Calling close multiple times is safe
+  it("calling session.close() multiple times is safe", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+
+    // Close multiple times - should not throw
+    sessionA.close();
+    sessionA.close();
+    sessionA.close();
+
+    // Subsequent calls should still reject
+    try {
+      await (sessionA.remote as any).anyMethod();
+      expect.fail("Should have rejected");
+    } catch (err) {
+      expect((err as Error).message).toBe("Session is closed");
+    }
+
+    sessionB.close();
+  });
+});
+
 // --- Additional edge cases ---
 
 describe("Session behavior", () => {
