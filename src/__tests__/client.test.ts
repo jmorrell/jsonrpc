@@ -2,34 +2,36 @@ import { describe, it, expect, vi } from "vitest";
 import { newHttpBatchRpcSession, RpcError } from "../http-batch.js";
 import type { RpcTransport } from "../http-batch.js";
 
+// --- Helpers ---
+
+function mockTransport(): { transport: RpcTransport; calls: string[] } {
+  const calls: string[] = [];
+  const transport: RpcTransport = vi.fn(async (body: string) => {
+    calls.push(body);
+    const req = JSON.parse(body);
+    if (Array.isArray(req)) {
+      const responses = req
+        .filter((r: any) => "id" in r)
+        .map((r: any) => ({
+          jsonrpc: "2.0",
+          id: r.id,
+          result: `result-${r.method}`,
+        }));
+      return JSON.stringify(responses);
+    } else {
+      return JSON.stringify({
+        jsonrpc: "2.0",
+        id: req.id,
+        result: `result-${req.method}`,
+      });
+    }
+  });
+  return { transport, calls };
+}
+
 // --- Client batching tests ---
 
 describe("newHttpBatchRpcSession batching", () => {
-  function mockTransport(): { transport: RpcTransport; calls: string[] } {
-    const calls: string[] = [];
-    const transport: RpcTransport = vi.fn(async (body: string) => {
-      calls.push(body);
-      const req = JSON.parse(body);
-      if (Array.isArray(req)) {
-        const responses = req
-          .filter((r: any) => "id" in r)
-          .map((r: any) => ({
-            jsonrpc: "2.0",
-            id: r.id,
-            result: `result-${r.method}`,
-          }));
-        return JSON.stringify(responses);
-      } else {
-        return JSON.stringify({
-          jsonrpc: "2.0",
-          id: req.id,
-          result: `result-${req.method}`,
-        });
-      }
-    });
-    return { transport, calls };
-  }
-
   it("single call sends single object (not array)", async () => {
     const { transport, calls } = mockTransport();
     type Svc = { add(a: number, b: number): number };
@@ -180,5 +182,45 @@ describe("newHttpBatchRpcSession batching", () => {
     const pB = client.b();
     await expect(pA).rejects.toThrow(RpcError);
     await expect(pB).rejects.toThrow(RpcError);
+  });
+});
+
+// --- Symbol.dispose tests ---
+
+describe("newHttpBatchRpcSession Symbol.dispose", () => {
+  it("has Symbol.dispose property", async () => {
+    const { transport } = mockTransport();
+    type Svc = { test(): string };
+    const client = newHttpBatchRpcSession<Svc>({ transport });
+
+    expect(typeof client[Symbol.dispose]).toBe("function");
+  });
+
+  it("Symbol.dispose can be called without throwing", async () => {
+    const { transport } = mockTransport();
+    type Svc = { test(): string };
+    const client = newHttpBatchRpcSession<Svc>({ transport });
+
+    expect(() => {
+      client[Symbol.dispose]();
+    }).not.toThrow();
+  });
+
+  it("Symbol.dispose is non-enumerable", async () => {
+    const { transport } = mockTransport();
+    type Svc = { test(): string };
+    const client = newHttpBatchRpcSession<Svc>({ transport });
+
+    expect(Object.keys(client)).toHaveLength(0);
+  });
+
+  it("spreading the proxy does not include Symbol.dispose", async () => {
+    const { transport } = mockTransport();
+    type Svc = { test(): string };
+    const client = newHttpBatchRpcSession<Svc>({ transport });
+
+    const spread = { ...client };
+    expect(Object.keys(spread)).toHaveLength(0);
+    expect(Symbol.dispose in spread).toBe(false);
   });
 });
