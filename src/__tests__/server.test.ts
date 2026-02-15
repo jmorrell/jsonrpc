@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { handleRpc } from "../server.js";
+import { newHttpBatchRpcResponse } from "../http-batch.js";
 
 // Test service
 const service = {
@@ -8,12 +8,12 @@ const service = {
   },
 };
 
-// --- handleRpc HTTP wrapper ---
+// --- newHttpBatchRpcResponse ---
 
-describe("handleRpc HTTP wrapper", () => {
+describe("newHttpBatchRpcResponse", () => {
   it("returns 405 for non-POST requests", async () => {
     const req = new Request("http://localhost/rpc", { method: "GET" });
-    const res = await handleRpc(req, service);
+    const res = await newHttpBatchRpcResponse(req, service);
     expect(res.status).toBe(405);
     expect(res.headers.get("Allow")).toBe("POST");
   });
@@ -23,7 +23,7 @@ describe("handleRpc HTTP wrapper", () => {
       method: "POST",
       body: "not json{",
     });
-    const res = await handleRpc(req, service);
+    const res = await newHttpBatchRpcResponse(req, service);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual({
@@ -38,7 +38,7 @@ describe("handleRpc HTTP wrapper", () => {
       method: "POST",
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "add", params: [1, 2] }),
     });
-    const res = await handleRpc(req, service);
+    const res = await newHttpBatchRpcResponse(req, service);
     expect(res.headers.get("Content-Type")).toBe("application/json");
   });
 
@@ -49,7 +49,7 @@ describe("handleRpc HTTP wrapper", () => {
       method: "POST",
       body: JSON.stringify({ jsonrpc: "2.0", method: "doStuff" }),
     });
-    const res = await handleRpc(req, svc);
+    const res = await newHttpBatchRpcResponse(req, svc);
     expect(res.status).toBe(204);
     expect(fn).not.toHaveBeenCalled();
   });
@@ -64,7 +64,7 @@ describe("handleRpc HTTP wrapper", () => {
         params: [3, 4],
       }),
     });
-    const res = await handleRpc(req, service);
+    const res = await newHttpBatchRpcResponse(req, service);
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json).toEqual({ jsonrpc: "2.0", id: 1, result: 7 });
