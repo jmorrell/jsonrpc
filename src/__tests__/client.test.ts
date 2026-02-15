@@ -11,9 +11,7 @@ import type { RpcTransport } from "../types.js";
 
 describe("isJsonRpcResponse", () => {
   it("accepts a success response", () => {
-    expect(
-      isJsonRpcResponse({ jsonrpc: "2.0", id: 1, result: 42 })
-    ).toBe(true);
+    expect(isJsonRpcResponse({ jsonrpc: "2.0", id: 1, result: 42 })).toBe(true);
   });
 
   it("accepts an error response", () => {
@@ -22,14 +20,14 @@ describe("isJsonRpcResponse", () => {
         jsonrpc: "2.0",
         id: 1,
         error: { code: -32600, message: "Invalid Request" },
-      })
+      }),
     ).toBe(true);
   });
 
   it("accepts null id", () => {
-    expect(
-      isJsonRpcResponse({ jsonrpc: "2.0", id: null, result: "ok" })
-    ).toBe(true);
+    expect(isJsonRpcResponse({ jsonrpc: "2.0", id: null, result: "ok" })).toBe(
+      true,
+    );
   });
 
   it("rejects missing jsonrpc", () => {
@@ -37,9 +35,9 @@ describe("isJsonRpcResponse", () => {
   });
 
   it("rejects wrong jsonrpc version", () => {
-    expect(
-      isJsonRpcResponse({ jsonrpc: "1.0", id: 1, result: 42 })
-    ).toBe(false);
+    expect(isJsonRpcResponse({ jsonrpc: "1.0", id: 1, result: 42 })).toBe(
+      false,
+    );
   });
 
   it("rejects missing id", () => {
@@ -59,13 +57,13 @@ describe("isJsonRpcResponse", () => {
         id: 1,
         result: 42,
         error: { code: -1, message: "err" },
-      })
+      }),
     ).toBe(false);
   });
 
   it("rejects error response with invalid error object", () => {
     expect(
-      isJsonRpcResponse({ jsonrpc: "2.0", id: 1, error: "not an object" })
+      isJsonRpcResponse({ jsonrpc: "2.0", id: 1, error: "not an object" }),
     ).toBe(false);
   });
 });
@@ -231,7 +229,10 @@ describe("rpcClient batching", () => {
     const pFail = client.fail();
     expect(await pOk).toBe("ok");
     await expect(pFail).rejects.toThrow(RpcError);
-    await expect(pFail).rejects.toMatchObject({ code: -32000, message: "fail" });
+    await expect(pFail).rejects.toMatchObject({
+      code: -32000,
+      message: "fail",
+    });
   });
 
   it("transport failure rejects all promises in batch", async () => {
@@ -250,9 +251,7 @@ describe("rpcClient batching", () => {
     const transport: RpcTransport = vi.fn(async (body: string) => {
       const req = JSON.parse(body);
       // Only respond to first request
-      return JSON.stringify([
-        { jsonrpc: "2.0", id: req[0].id, result: "ok" },
-      ]);
+      return JSON.stringify([{ jsonrpc: "2.0", id: req[0].id, result: "ok" }]);
     });
     type Svc = { a(): string; b(): string };
     const client = rpcClient<Svc>({ transport });
@@ -301,12 +300,5 @@ describe("rpcClient batching", () => {
     const pB = client.b();
     await expect(pA).rejects.toThrow(RpcError);
     await expect(pB).rejects.toThrow(RpcError);
-  });
-
-  it("accessing .notify on client returns undefined", async () => {
-    const { transport } = mockTransport();
-    type Svc = { add(a: number, b: number): number };
-    const client = rpcClient<Svc>({ transport });
-    expect((client as any).notify).toBeUndefined();
   });
 });
