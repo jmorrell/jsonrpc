@@ -7,12 +7,14 @@ Lightweight [JSON-RPC 2.0](https://www.jsonrpc.org/specification) library for Ty
 - Spec-compliant JSON-RPC 2.0
 - Transport-agnostic core
 - Zero dependencies
-- Three files: `types.ts`, `client.ts`, `server.ts`
 - Designed for Cloudflare Workers
 
 ## Influences
 
-This library borrows its shape from [typed-rpc](https://github.com/fgnass/typed-rpc) — define a service as a TypeScript type, get a fully typed client via `rpcClient<T>()`. The batching mechanism is inspired by [capnweb](https://github.com/cloudflare/capnweb).
+This library was influenced by the designs of:
+
+- [typed-rpc](https://github.com/fgnass/typed-rpc)
+- [capnweb](https://github.com/cloudflare/capnweb)
 
 ## Basic usage
 
@@ -101,16 +103,6 @@ const [sum, difference, product] = await Promise.all([
 A single call is sent as a plain JSON-RPC request object (not wrapped in an array), so it works with servers that don't support batching.
 
 Batching uses `setTimeout(0)` — all synchronous calls and microtasks (`.then()`, `queueMicrotask`) within the same turn are included.
-
-### Notifications
-
-Fire-and-forget calls that don't expect a response from the server:
-
-```ts
-await client.notify.logEvent("page_viewed", { page: "/home" });
-```
-
-The returned `Promise<void>` resolves when the request is sent. It rejects on transport errors but never returns a JSON-RPC response.
 
 ### Custom headers
 
