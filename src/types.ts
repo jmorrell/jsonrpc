@@ -1,23 +1,24 @@
+// pattern: Functional Core
 // JSON-RPC 2.0 wire format types
 
-export interface JsonRpcRequest {
+export type JsonRpcRequest = {
   jsonrpc: "2.0";
   id?: string | number | null;
   method: string;
   params?: unknown[];
-}
+};
 
-export interface JsonRpcSuccessResponse {
+export type JsonRpcSuccessResponse = {
   jsonrpc: "2.0";
   id: string | number | null;
   result: unknown;
-}
+};
 
-export interface JsonRpcErrorResponse {
+export type JsonRpcErrorResponse = {
   jsonrpc: "2.0";
   id: string | number | null;
   error: { code: number; message: string; data?: unknown };
-}
+};
 
 export type JsonRpcResponse = JsonRpcSuccessResponse | JsonRpcErrorResponse;
 
@@ -32,7 +33,7 @@ type Promisify<T> = T extends (...args: any[]) => Promise<any>
     ? (...args: A) => Promise<R>
     : T;
 
-type PromisifyMethods<T extends object> = {
+export type PromisifyMethods<T extends object> = {
   [K in keyof T]: Promisify<T[K]>;
 };
 
@@ -51,17 +52,30 @@ export type RpcFetchOptions = {
     | undefined;
 };
 
-// Client proxy type: methods + notify sub-proxy
-export type RpcClient<T extends object> = PromisifyMethods<T> & {
-  notify: {
-    [K in keyof T]: T[K] extends (...args: infer A) => any
-      ? (...args: A) => Promise<void>
-      : never;
-  };
-};
+// Client proxy type: promisified methods only
+export type RpcClient<T extends object> = PromisifyMethods<T>;
 
 // Server types
 
 export type RpcHandlerOptions = {
   onError?: (err: unknown) => void;
+};
+
+// Message-oriented transport for bidirectional connections
+export type RpcMessageTransport = {
+  send(message: string): void;
+  onMessage(handler: (message: string) => void): void;
+  onClose(handler: (reason?: Error) => void): void;
+  close(): void;
+};
+
+// Session types
+export type RpcSessionOptions = {
+  role?: 'initiator' | 'acceptor'; // default: 'initiator'
+  onError?: (err: unknown) => void;
+};
+
+export type RpcSession<TRemote extends object, TLocal extends object> = {
+  remote: PromisifyMethods<TRemote>;
+  close(): void;
 };

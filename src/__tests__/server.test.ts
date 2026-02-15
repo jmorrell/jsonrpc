@@ -319,7 +319,7 @@ describe("processRpc notifications", () => {
       svc
     );
     expect(result).toBeNull();
-    expect(fn).toHaveBeenCalledWith(1);
+    expect(fn).not.toHaveBeenCalled();
   });
 
   it("id: null is NOT a notification — must produce a response", async () => {
@@ -334,17 +334,19 @@ describe("processRpc notifications", () => {
     });
   });
 
-  it("still executes method for notifications even if it throws", async () => {
-    const fn = vi.fn(() => {
-      throw new Error("oops");
-    });
+  it("logs warning via onError when notification received", async () => {
+    const onError = vi.fn();
+    const fn = vi.fn();
     const svc = { doStuff: fn };
-    const result = await processRpc(
-      { jsonrpc: "2.0", method: "doStuff" },
-      svc
+    await processRpc(
+      { jsonrpc: "2.0", method: "doStuff", params: [1] },
+      svc,
+      { onError }
     );
-    expect(result).toBeNull();
-    expect(fn).toHaveBeenCalledOnce();
+    expect(fn).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+    expect(onError.mock.calls[0][0].message).toContain("notification");
   });
 });
 
@@ -391,7 +393,7 @@ describe("handleRpc HTTP wrapper", () => {
     });
     const res = await handleRpc(req, svc);
     expect(res.status).toBe(204);
-    expect(fn).toHaveBeenCalledOnce();
+    expect(fn).not.toHaveBeenCalled();
   });
 
   it("returns 200 with JSON body for normal request", async () => {
@@ -443,7 +445,7 @@ describe("processRpc batch", () => {
       { jsonrpc: "2.0", id: 1, result: 3 },
       { jsonrpc: "2.0", id: 2, result: 2 },
     ]);
-    expect(fn).toHaveBeenCalledWith("test");
+    expect(fn).not.toHaveBeenCalled();
   });
 
   it("returns Invalid Request error for empty array", async () => {
@@ -492,8 +494,8 @@ describe("processRpc batch", () => {
       svc
     );
     expect(result).toBeNull();
-    expect(fn1).toHaveBeenCalledOnce();
-    expect(fn2).toHaveBeenCalledOnce();
+    expect(fn1).not.toHaveBeenCalled();
+    expect(fn2).not.toHaveBeenCalled();
   });
 
   it("isolates errors: one handler throws, others succeed", async () => {
