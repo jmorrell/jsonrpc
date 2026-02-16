@@ -21,6 +21,15 @@ export type RpcTransport = {
 };
 
 export type RpcSessionOptions = {
+  // In bidirectional RPC, both sides send requests with an `id` field that the
+  // peer echoes back in its response. JSON-RPC IDs are shared on the wire — if
+  // both sides independently pick the same ID, responses become ambiguous and
+  // there is no way to recover. The `role` option solves this by assigning each
+  // side a non-overlapping ID range: initiators count up (1, 2, 3…) and
+  // acceptors count down (-1, -2, -3…), guaranteeing zero collisions by
+  // construction. Higher-level helpers (e.g. newWebSocketRpcSession) set this
+  // automatically; only callers using RpcSession with a raw transport need to
+  // provide it.
   role?: "initiator" | "acceptor"; // default: 'initiator'
   onError?: (err: RpcProtocolError) => void;
 };
