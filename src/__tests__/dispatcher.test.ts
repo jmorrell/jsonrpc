@@ -140,33 +140,6 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
           // RangeError (status 101 not allowed). Both indicate correct routing.
         }
       });
-
-      it("should attempt to delegate WebSocket upgrade requests (routing verification)", async () => {
-        // Simplified test: just verify that a WebSocket upgrade request is attempted to be routed
-        // The actual routing is verified by the fact that newWorkersWebSocketRpcResponse is called
-        // Full integration testing happens in Phase 4
-        const req = new Request("http://localhost/rpc", {
-          method: "GET",
-          headers: {
-            Upgrade: "websocket",
-          },
-        });
-
-        // This test verifies that the dispatcher attempts to handle the upgrade
-        // In non-Workers environment, it will fail (expected)
-        let upgradeAttempted = false;
-        try {
-          await newWorkersRpcResponse(req, service);
-          // If it succeeds without error, upgrade was handled
-          upgradeAttempted = true;
-        } catch {
-          // Error indicates upgrade routing was attempted
-          // (either WebSocketPair not available or status 101 invalid)
-          upgradeAttempted = true;
-        }
-
-        expect(upgradeAttempted).toBe(true);
-      });
     });
 
     describe("AC6.3: Other request types return 400", () => {

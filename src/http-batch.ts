@@ -1,5 +1,5 @@
 import type { JsonRpcRequest, JsonRpcResponse, PromisifyMethods, RpcHandlerOptions } from "./core.js";
-import { isJsonRpcResponse, RpcError, createRequest, errorResponse, processRpc } from "./core.js";
+import { isJsonRpcResponse, RpcError, createRequest, errorResponse, processRpc, RESERVED_PROPS } from "./core.js";
 
 // --- Server: HTTP batch handler ---
 
@@ -85,8 +85,6 @@ type PendingCall = {
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
 };
-
-const RESERVED_PROPS = new Set(["then", "toJSON"]);
 
 /**
  * Create a typed JSON-RPC 2.0 client with auto-batching over HTTP.
