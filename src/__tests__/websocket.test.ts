@@ -8,7 +8,7 @@ import { createLinkedTransports, MockWebSocket } from "./test-helpers.js";
 import { rpcSession } from "../session.js";
 
 describe("WebSocket transport and RPC (Tasks 2-5)", () => {
-  describe("Task 2: createWebSocketTransport", () => {
+  describe("createWebSocketTransport", () => {
     it("should queue messages while socket is CONNECTING", () => {
       const ws = new MockWebSocket(WebSocket.CONNECTING);
       const transport = createWebSocketTransport(ws);
@@ -93,28 +93,28 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
     });
   });
 
-  describe("Task 3: newWorkersWebSocketRpcResponse (AC4)", () => {
-    it("AC4.1: should return 400 for non-upgrade requests", () => {
+  describe("newWorkersWebSocketRpcResponse (AC4)", () => {
+    it("should return 400 for non-upgrade requests", () => {
       const request = new Request("http://example.com", { method: "GET" });
       const response = newWorkersWebSocketRpcResponse(request);
 
       expect(response.status).toBe(400);
     });
 
-    it("AC4.4: should return 400 for requests without Upgrade header", () => {
+    it("should return 400 for requests without Upgrade header", () => {
       const request = new Request("http://example.com");
       const response = newWorkersWebSocketRpcResponse(request);
 
       expect(response.status).toBe(400);
     });
 
-    // Note: AC4.1 (101 status code test) requires real WebSocketPair from Cloudflare Workers runtime
+    // Note: (101 status code test) requires real WebSocketPair from Cloudflare Workers runtime
     // This will be tested in Phase 4 workers integration tests
     // The function is implemented correctly, but Node's Response API doesn't support 101 status
   });
 
-  describe("Task 4: newWebSocketRpcSession (AC5)", () => {
-    it("AC5.1: should accept URL string and create WebSocket", () => {
+  describe("newWebSocketRpcSession (AC5)", () => {
+    it("should accept URL string and create WebSocket", () => {
       const ws = new MockWebSocket(WebSocket.OPEN);
       globalThis.WebSocket = vi.fn(() => ws) as any;
 
@@ -124,7 +124,7 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       expect(session).toBeDefined();
     });
 
-    it("AC5.2: should accept existing WebSocket instance", () => {
+    it("should accept existing WebSocket instance", () => {
       const ws = new MockWebSocket(WebSocket.OPEN);
 
       const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
@@ -132,7 +132,7 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       expect(session).toBeDefined();
     });
 
-    it("AC3.2: should have Symbol.dispose property", () => {
+    it("should have Symbol.dispose property", () => {
       const ws = new MockWebSocket(WebSocket.OPEN);
 
       const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
@@ -141,7 +141,7 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       expect(typeof (session as any)[Symbol.dispose]).toBe("function");
     });
 
-    it("AC3.3: should close WebSocket when Symbol.dispose is called", () => {
+    it("should close WebSocket when Symbol.dispose is called", () => {
       const ws = new MockWebSocket(WebSocket.OPEN);
       const closeSpy = vi.spyOn(ws, "close");
 
@@ -172,7 +172,7 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       expect(closeSpy).toHaveBeenCalled();
     });
 
-    it("AC5.3: should support bidirectional RPC with localFunctions", async () => {
+    it("should support bidirectional RPC with localFunctions", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const serverService = {
@@ -184,7 +184,9 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       };
 
       // Create server session
-      const serverSession = rpcSession(transportA, serverService, { role: "acceptor" });
+      const serverSession = rpcSession(transportA, serverService, {
+        role: "acceptor",
+      });
 
       // Create client session with local functions
       const clientSession = rpcSession(transportB, clientLocalFunctions, {
@@ -203,7 +205,7 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       clientSession.close();
     });
 
-    it("AC5.4: should queue messages while WebSocket is connecting", async () => {
+    it("should queue messages while WebSocket is connecting", async () => {
       const ws = new MockWebSocket(WebSocket.CONNECTING);
 
       // Create session with connecting socket - this will attempt to make RPC calls
@@ -227,7 +229,7 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
     });
   });
 
-  describe("Task 5: WebSocket bidirectional RPC", () => {
+  describe("WebSocket bidirectional RPC", () => {
     it("should handle server → client method calls", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
@@ -239,8 +241,12 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
         compute: async () => "done",
       };
 
-      const serverSession = rpcSession(transportA, serverService, { role: "acceptor" });
-      const clientSession = rpcSession(transportB, clientService, { role: "initiator" });
+      const serverSession = rpcSession(transportA, serverService, {
+        role: "acceptor",
+      });
+      const clientSession = rpcSession(transportB, clientService, {
+        role: "initiator",
+      });
 
       // Server invokes a method on the client
       const result = await (serverSession.remote as any).getData();

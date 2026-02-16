@@ -48,7 +48,7 @@ describe("All 7 exports resolve from entry point", () => {
   });
 });
 
-describe("Workers runtime integration tests (Task 5)", () => {
+describe("Workers runtime integration tests", () => {
   describe("HTTP batch functionality in Workers", () => {
     it("should handle single HTTP batch request round-trip", async () => {
       const response = await SELF.fetch("http://localhost/rpc", {
@@ -220,7 +220,7 @@ describe("Workers runtime integration tests (Task 5)", () => {
     });
 
     it("should support bidirectional communication over WebSocket", async () => {
-      const response = await SELF.fetch("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/bidirectional", {
         method: "GET",
         headers: {
           Upgrade: "websocket",
@@ -228,76 +228,24 @@ describe("Workers runtime integration tests (Task 5)", () => {
       });
 
       const ws = response.webSocket;
-
-      if (!ws) {
-        throw new Error("WebSocket not available");
-      }
-
+      if (!ws) throw new Error("WebSocket not available");
       ws.accept();
 
-      // Send first request
-      const req1 = JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "echo",
-        params: ["first"],
+      // Create client session with a local function the server can call back
+      const client = newWebSocketRpcSession<
+        { addWithClientMultiplier(a: number, b: number): number },
+        { getMultiplier(): number }
+      >(ws, {
+        getMultiplier: () => 10,
       });
 
-      ws.send(req1);
+      // Client calls server, server calls client.getMultiplier() mid-request
+      const result = await client.addWithClientMultiplier(2, 3);
 
-      // Send second request
-      const req2 = JSON.stringify({
-        jsonrpc: "2.0",
-        id: 2,
-        method: "echo",
-        params: ["second"],
-      });
+      // (2 + 3) * 10 = 50
+      expect(result).toBe(50);
 
-      ws.send(req2);
-
-      // Collect both responses
-      const responses: string[] = [];
-      const collectResponses = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("WebSocket collection timeout")), 5000);
-
-        let receivedCount = 0;
-
-        const messageHandler = (event: Event) => {
-          if (event instanceof MessageEvent) {
-            responses.push(event.data);
-            receivedCount++;
-
-            if (receivedCount === 2) {
-              clearTimeout(timeout);
-              ws.removeEventListener("message", messageHandler);
-              resolve();
-            }
-          }
-        };
-
-        ws.addEventListener("message", messageHandler);
-      });
-
-      await collectResponses;
-
-      expect(responses).toHaveLength(2);
-
-      const resp1 = JSON.parse(responses[0]);
-      const resp2 = JSON.parse(responses[1]);
-
-      expect(resp1).toEqual({
-        jsonrpc: "2.0",
-        id: 1,
-        result: ["first"],
-      });
-
-      expect(resp2).toEqual({
-        jsonrpc: "2.0",
-        id: 2,
-        result: ["second"],
-      });
-
-      ws.close();
+      client.close();
     });
   });
 
