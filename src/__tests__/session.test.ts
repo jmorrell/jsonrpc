@@ -1319,3 +1319,226 @@ describe("session error resilience", () => {
     sessionB.close();
   });
 });
+
+describe("Bidirectional RPC", () => {
+  type MathService = {
+    add(a: number, b: number): number;
+    multiply(a: number, b: number): number;
+  };
+
+  type GreetingService = {
+    greet(name: string): string;
+    getLocale(): string;
+  };
+
+  it("both sides call each other's methods", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const mathService: MathService = {
+      add: (a, b) => a + b,
+      multiply: (a, b) => a * b,
+    };
+
+    const greetingService: GreetingService = {
+      greet: (name) => `Hello, ${name}!`,
+      getLocale: () => "en-US",
+    };
+
+    const sessionA = new RpcSession<GreetingService, MathService>(
+      transportA,
+      mathService,
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<MathService, GreetingService>(
+      transportB,
+      greetingService,
+      { role: "acceptor" },
+    );
+
+    // A calls B's greeting service
+    expect(await sessionA.remote.greet("world")).toBe("Hello, world!");
+    expect(await sessionA.remote.getLocale()).toBe("en-US");
+
+    // B calls A's math service
+    expect(await sessionB.remote.add(3, 4)).toBe(7);
+    expect(await sessionB.remote.multiply(5, 6)).toBe(30);
+
+    sessionA.close();
+  });
+
+  it("both sides call each other concurrently", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const mathService: MathService = {
+      add: (a, b) => a + b,
+      multiply: (a, b) => a * b,
+    };
+
+    const greetingService: GreetingService = {
+      greet: (name) => `Hello, ${name}!`,
+      getLocale: () => "en-US",
+    };
+
+    const sessionA = new RpcSession<GreetingService, MathService>(
+      transportA,
+      mathService,
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<MathService, GreetingService>(
+      transportB,
+      greetingService,
+      { role: "acceptor" },
+    );
+
+    // Both sides fire calls at the same time
+    const [greeting, locale, sum, product] = await Promise.all([
+      sessionA.remote.greet("world"),
+      sessionA.remote.getLocale(),
+      sessionB.remote.add(10, 20),
+      sessionB.remote.multiply(3, 7),
+    ]);
+
+    expect(greeting).toBe("Hello, world!");
+    expect(locale).toBe("en-US");
+    expect(sum).toBe(30);
+    expect(product).toBe(21);
+
+    sessionA.close();
+  });
+
+  it("server method calls back to client during handling", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    type ClientService = {
+      getMultiplier(): number;
+    };
+
+    type ServerService = {
+      computeWithClientMultiplier(a: number, b: number): Promise<number>;
+    };
+
+    const clientService: ClientService = {
+      getMultiplier: () => 10,
+    };
+
+    const sessionA = new RpcSession<ServerService, ClientService>(
+      transportA,
+      clientService,
+      { role: "initiator" },
+    );
+
+    // Server service calls back to the client to get the multiplier
+    const serverService: ServerService = {
+      computeWithClientMultiplier: async (a, b) => {
+        const multiplier = await sessionB.remote.getMultiplier();
+        return (a + b) * multiplier;
+      },
+    };
+
+    const sessionB = new RpcSession<ClientService, ServerService>(
+      transportB,
+      serverService,
+      { role: "acceptor" },
+    );
+
+    const result = await sessionA.remote.computeWithClientMultiplier(3, 4);
+    expect(result).toBe(70); // (3 + 4) * 10
+
+    sessionA.close();
+  });
+
+  it("errors propagate correctly in both directions", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    type ServiceA = {
+      failA(): never;
+    };
+
+    type ServiceB = {
+      failB(): never;
+    };
+
+    const serviceA: ServiceA = {
+      failA() {
+        const err = new Error("Error from A");
+        (err as any).code = -32001;
+        throw err;
+      },
+    };
+
+    const serviceB: ServiceB = {
+      failB() {
+        const err = new Error("Error from B");
+        (err as any).code = -32002;
+        throw err;
+      },
+    };
+
+    const sessionA = new RpcSession<ServiceB, ServiceA>(
+      transportA,
+      serviceA,
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<ServiceA, ServiceB>(
+      transportB,
+      serviceB,
+      { role: "acceptor" },
+    );
+
+    // A calls B, gets B's error
+    await expect(sessionA.remote.failB()).rejects.toThrow(RpcError);
+    try {
+      await sessionA.remote.failB();
+    } catch (err) {
+      expect((err as RpcError).code).toBe(-32002);
+      expect((err as RpcError).message).toBe("Error from B");
+    }
+
+    // B calls A, gets A's error
+    await expect(sessionB.remote.failA()).rejects.toThrow(RpcError);
+    try {
+      await sessionB.remote.failA();
+    } catch (err) {
+      expect((err as RpcError).code).toBe(-32001);
+      expect((err as RpcError).message).toBe("Error from A");
+    }
+
+    sessionA.close();
+  });
+
+  it("close rejects pending calls on both sides", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    type SlowService = {
+      slow(): Promise<string>;
+    };
+
+    // Services that never resolve
+    const neverResolveA: SlowService = {
+      slow: () => new Promise(() => {}),
+    };
+    const neverResolveB: SlowService = {
+      slow: () => new Promise(() => {}),
+    };
+
+    const sessionA = new RpcSession<SlowService, SlowService>(
+      transportA,
+      neverResolveA,
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<SlowService, SlowService>(
+      transportB,
+      neverResolveB,
+      { role: "acceptor" },
+    );
+
+    // Both sides have pending outgoing calls
+    const pA = sessionA.remote.slow();
+    const pB = sessionB.remote.slow();
+
+    sessionA.close();
+
+    await expect(pA).rejects.toThrow();
+    await expect(pB).rejects.toThrow();
+  });
+});
