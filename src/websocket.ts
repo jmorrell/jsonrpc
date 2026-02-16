@@ -10,8 +10,7 @@ import { RESERVED_PROPS } from "./core.js";
  * @internal
  */
 export function createWebSocketTransport(ws: WebSocket): RpcMessageTransport {
-  let messageQueue: Array<string> | null =
-    ws.readyState === WebSocket.CONNECTING ? [] : null;
+  let messageQueue: Array<string> | null = ws.readyState === WebSocket.CONNECTING ? [] : null;
 
   if (messageQueue) {
     ws.addEventListener("open", () => {

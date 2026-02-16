@@ -148,10 +148,7 @@ describe("Workers runtime integration tests (Task 5)", () => {
 
       // Listen for response with timeout
       const responsePromise = new Promise<string>((resolve, reject) => {
-        const timeout = setTimeout(
-          () => reject(new Error("WebSocket response timeout")),
-          5000
-        );
+        const timeout = setTimeout(() => reject(new Error("WebSocket response timeout")), 5000);
 
         const messageHandler = (event: Event) => {
           if (event instanceof MessageEvent) {
@@ -215,10 +212,7 @@ describe("Workers runtime integration tests (Task 5)", () => {
       // Collect both responses
       const responses: string[] = [];
       const collectResponses = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(
-          () => reject(new Error("WebSocket collection timeout")),
-          5000
-        );
+        const timeout = setTimeout(() => reject(new Error("WebSocket collection timeout")), 5000);
 
         let receivedCount = 0;
 

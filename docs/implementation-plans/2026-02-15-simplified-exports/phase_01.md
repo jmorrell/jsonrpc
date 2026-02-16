@@ -17,6 +17,7 @@
 This phase is infrastructure — file restructuring and build verification. Tests are updated in Phase 2.
 
 ### simplified-exports.AC1: Single entry point (partial — old paths removed)
+
 - **simplified-exports.AC1.2 Failure:** `import ... from "@jmorrell/jsonrpc/client"` fails to resolve (old entry point removed) — operationally verified by replacing the `exports` field in Task 3
 - **simplified-exports.AC1.3 Failure:** `import ... from "@jmorrell/jsonrpc/server"` fails to resolve — operationally verified
 - **simplified-exports.AC1.4 Failure:** `import ... from "@jmorrell/jsonrpc/session"` fails to resolve — operationally verified
@@ -26,9 +27,11 @@ These are verified operationally by the `exports` field change (Task 3). The old
 ---
 
 <!-- START_TASK_1 -->
+
 ### Task 1: Create src/http-batch.ts
 
 **Files:**
+
 - Create: `src/http-batch.ts`
 
 **Step 1: Create `src/http-batch.ts`**
@@ -39,7 +42,12 @@ The function signatures and internal logic are preserved exactly — only the fu
 
 ```typescript
 // src/http-batch.ts
-import type { JsonRpcRequest, JsonRpcResponse, PromisifyMethods, RpcHandlerOptions } from "./core.js";
+import type {
+  JsonRpcRequest,
+  JsonRpcResponse,
+  PromisifyMethods,
+  RpcHandlerOptions,
+} from "./core.js";
 import { isJsonRpcResponse, RpcError, createRequest, errorResponse, processRpc } from "./core.js";
 
 // --- Server: HTTP batch handler ---
@@ -132,7 +140,9 @@ const RESERVED_PROPS = new Set(["then", "toJSON"]);
 /**
  * Create a typed JSON-RPC 2.0 client with auto-batching over HTTP.
  */
-export function newHttpBatchRpcSession<T extends object>(options: RpcClientOptions): PromisifyMethods<T> {
+export function newHttpBatchRpcSession<T extends object>(
+  options: RpcClientOptions,
+): PromisifyMethods<T> {
   let transport: RpcTransport;
 
   if (typeof options === "string") {
@@ -267,12 +277,15 @@ Expected: No errors (with `moduleResolution: "bundler"`, tsc must check the whol
 git add src/http-batch.ts
 git commit -m "feat: create http-batch.ts with renamed functions"
 ```
+
 <!-- END_TASK_1 -->
 
 <!-- START_TASK_2 -->
+
 ### Task 2: Create src/index.ts entry point
 
 **Files:**
+
 - Create: `src/index.ts`
 
 **Step 1: Create `src/index.ts`**
@@ -283,10 +296,7 @@ This file is the single public entry point. It re-exports from `http-batch.ts` (
 // src/index.ts
 
 // HTTP batch transport
-export {
-  newHttpBatchRpcResponse,
-  newHttpBatchRpcSession,
-} from "./http-batch.js";
+export { newHttpBatchRpcResponse, newHttpBatchRpcSession } from "./http-batch.js";
 export type { RpcTransport, RpcFetchOptions, RpcClientOptions } from "./http-batch.js";
 
 // Core types and errors
@@ -305,6 +315,7 @@ export type {
 Note: `session.ts` internals (`rpcSession`, `RpcMessageTransport`, etc.) are NOT exported from the public API — they are internal and will be used by `websocket.ts` in Phase 3. The old re-exports from `server.ts` (`processRpc`, `isJsonRpcRequest`) are also not part of the new public API — they are internal implementation details.
 
 **Intentionally dropped from public API** (compared to the three-entry-point structure):
+
 - `processRpc`, `isJsonRpcRequest` — internal protocol internals, not needed by consumers
 - `createRequest`, `isJsonRpcResponse` — internal helpers used by client implementation
 - `rpcSession`, `RpcMessageTransport`, `RpcSessionOptions` — internal session mechanics, consumed only by `websocket.ts`
@@ -323,12 +334,15 @@ Expected: No errors
 git add src/index.ts
 git commit -m "feat: create index.ts single entry point"
 ```
+
 <!-- END_TASK_2 -->
 
 <!-- START_TASK_3 -->
+
 ### Task 3: Update package.json exports to single entry point
 
 **Files:**
+
 - Modify: `package.json` (lines 8-21, the `exports` field)
 
 **Step 1: Replace the exports field**
@@ -359,12 +373,15 @@ Expected: Build succeeds, `dist/index.js` and `dist/index.d.ts` are generated
 git add package.json
 git commit -m "feat: single entry point in package.json exports"
 ```
+
 <!-- END_TASK_3 -->
 
 <!-- START_TASK_4 -->
+
 ### Task 4: Delete old source files
 
 **Files:**
+
 - Delete: `src/client.ts`
 - Delete: `src/server.ts`
 
@@ -395,12 +412,15 @@ Expected: Should contain `index.js`, `index.d.ts`, `http-batch.js`, `http-batch.
 git rm src/client.ts src/server.ts
 git commit -m "refactor: remove old client.ts and server.ts (replaced by http-batch.ts)"
 ```
+
 <!-- END_TASK_4 -->
 
 <!-- START_TASK_5 -->
+
 ### Task 5: Update AGENTS.md to reflect new structure
 
 **Files:**
+
 - Modify: `AGENTS.md` (lines 27-47, Project Structure and Package Entry Points sections)
 
 **Step 1: Update the Project Structure section**
@@ -408,12 +428,14 @@ git commit -m "refactor: remove old client.ts and server.ts (replaced by http-ba
 Replace lines describing `src/client.ts` and `src/server.ts` with the new file:
 
 Old:
+
 ```
 - `src/client.ts` - HTTP client with auto-batching via Proxy (defines client-specific types: RpcTransport, RpcClientOptions, RpcClient)
 - `src/server.ts` - HTTP server wrapper (Request in, Response out)
 ```
 
 New:
+
 ```
 - `src/http-batch.ts` - HTTP batch transport: newHttpBatchRpcResponse (server) + newHttpBatchRpcSession (client with auto-batching)
 ```
@@ -423,6 +445,7 @@ New:
 Replace the three-entry-point description with the single entry point:
 
 Old:
+
 ```
 Three public entry points (no barrel index.ts):
 
@@ -432,6 +455,7 @@ Three public entry points (no barrel index.ts):
 ```
 
 New:
+
 ```
 Single public entry point via index.ts:
 
@@ -459,4 +483,5 @@ Remove the old client.ts and server.ts lines.
 git add AGENTS.md
 git commit -m "docs: update AGENTS.md for new file structure"
 ```
+
 <!-- END_TASK_5 -->

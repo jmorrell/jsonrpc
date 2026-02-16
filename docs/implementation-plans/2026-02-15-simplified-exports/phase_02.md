@@ -17,30 +17,37 @@
 This phase implements and tests:
 
 ### simplified-exports.AC2: HTTP batch functions (capnweb-compatible)
+
 - **simplified-exports.AC2.1 Success:** `newHttpBatchRpcResponse` handles POST request and returns JSON-RPC response
 - **simplified-exports.AC2.2 Success:** `newHttpBatchRpcSession` creates auto-batching client proxy, concurrent calls batched in single request
 - **simplified-exports.AC2.3 Failure:** `newHttpBatchRpcResponse` returns 405 for non-POST requests
 - **simplified-exports.AC2.4 Failure:** `newHttpBatchRpcSession` propagates server errors as `RpcError`
 
 ### simplified-exports.AC3: Disposable return types
+
 - **simplified-exports.AC3.1 Success:** `newHttpBatchRpcSession` return value has `Symbol.dispose` property
 - **simplified-exports.AC3.4 Success:** `Symbol.dispose` is non-enumerable (doesn't interfere with object comparison)
 
 ---
 
 <!-- START_TASK_1 -->
+
 ### Task 1: Add esnext.disposable to tsconfig.json
 
 **Files:**
+
 - Modify: `tsconfig.json` (line 12, the `lib` field)
 
 **Step 1: Update the lib field**
 
 Change line 12 from:
+
 ```json
 "lib": ["ES2022", "DOM"]
 ```
+
 to:
+
 ```json
 "lib": ["ES2022", "DOM", "ESNext.Disposable"]
 ```
@@ -58,15 +65,18 @@ Expected: Build succeeds without errors
 git add tsconfig.json
 git commit -m "chore: add ESNext.Disposable lib for Symbol.dispose support"
 ```
+
 <!-- END_TASK_1 -->
 
 <!-- START_SUBCOMPONENT_A (tasks 2-4) -->
 <!-- START_TASK_2 -->
+
 ### Task 2: Add Symbol.dispose to newHttpBatchRpcSession proxy
 
 **Verifies:** simplified-exports.AC3.1, simplified-exports.AC3.4
 
 **Files:**
+
 - Modify: `src/http-batch.ts` (the Proxy `get` trap at the end of `newHttpBatchRpcSession`)
 
 **Implementation:**
@@ -76,6 +86,7 @@ In `newHttpBatchRpcSession`, modify the Proxy `get` trap to handle `Symbol.dispo
 Change the return type from `PromisifyMethods<T>` to `PromisifyMethods<T> & Disposable`.
 
 In the Proxy `get` trap, before the `typeof prop === "symbol"` check, add:
+
 ```typescript
 if (prop === Symbol.dispose) {
   return () => {};
@@ -100,8 +111,11 @@ get(_target, prop) {
 ```
 
 Also update the function's return type annotation and the cast at the end:
+
 ```typescript
-export function newHttpBatchRpcSession<T extends object>(options: RpcClientOptions): PromisifyMethods<T> & Disposable {
+export function newHttpBatchRpcSession<T extends object>(
+  options: RpcClientOptions,
+): PromisifyMethods<T> & Disposable {
   // ... existing code ...
   return new Proxy(/* ... */) as PromisifyMethods<T> & Disposable;
 }
@@ -113,24 +127,30 @@ Run: `npm run build`
 Expected: Build succeeds
 
 **Commit:** `feat: add Symbol.dispose to HTTP batch session proxy`
+
 <!-- END_TASK_2 -->
 
 <!-- START_TASK_3 -->
+
 ### Task 3: Update client.test.ts imports and function names
 
 **Verifies:** simplified-exports.AC2.2, simplified-exports.AC2.4
 
 **Files:**
+
 - Modify: `src/__tests__/client.test.ts`
 
 **Implementation:**
 
 Update imports at the top of the file. Change:
+
 ```typescript
 import { rpcClient, RpcError } from "../client.js";
 import type { RpcTransport } from "../client.js";
 ```
+
 to:
+
 ```typescript
 import { newHttpBatchRpcSession, RpcError } from "../http-batch.js";
 import type { RpcTransport } from "../http-batch.js";
@@ -146,19 +166,23 @@ Run: `npm run test -- src/__tests__/client.test.ts`
 Expected: All 10 tests pass
 
 **Commit:** `refactor: update client.test.ts to use new function names and imports`
+
 <!-- END_TASK_3 -->
 
 <!-- START_TASK_4 -->
+
 ### Task 4: Tests for Symbol.dispose on HTTP batch session
 
 **Verifies:** simplified-exports.AC3.1, simplified-exports.AC3.4
 
 **Files:**
+
 - Modify: `src/__tests__/client.test.ts` (add new describe block)
 
 **Testing:**
 
 Tests must verify:
+
 - simplified-exports.AC3.1: `newHttpBatchRpcSession` return value has `Symbol.dispose` property — call `Symbol.dispose` on the proxy, verify it's a function, verify it doesn't throw
 - simplified-exports.AC3.4: `Symbol.dispose` is non-enumerable — verify `Object.keys()` on the proxy is empty, verify spreading the proxy doesn't include `Symbol.dispose`
 
@@ -170,24 +194,30 @@ Run: `npm run test`
 Expected: All tests pass
 
 **Commit:** `test: add Symbol.dispose tests for HTTP batch session`
+
 <!-- END_TASK_4 -->
 <!-- END_SUBCOMPONENT_A -->
 
 <!-- START_TASK_5 -->
+
 ### Task 5: Update server.test.ts imports and function names
 
 **Verifies:** simplified-exports.AC2.1, simplified-exports.AC2.3
 
 **Files:**
+
 - Modify: `src/__tests__/server.test.ts`
 
 **Implementation:**
 
 Update imports. Change:
+
 ```typescript
 import { handleRpc } from "../server.js";
 ```
+
 to:
+
 ```typescript
 import { newHttpBatchRpcResponse } from "../http-batch.js";
 ```
@@ -202,25 +232,31 @@ Run: `npm run test -- src/__tests__/server.test.ts`
 Expected: All 5 tests pass
 
 **Commit:** `refactor: update server.test.ts to use new function names and imports`
+
 <!-- END_TASK_5 -->
 
 <!-- START_TASK_6 -->
+
 ### Task 6: Update e2e.test.ts imports and function names
 
 **Verifies:** simplified-exports.AC2.1, simplified-exports.AC2.2
 
 **Files:**
+
 - Modify: `src/__tests__/e2e.test.ts`
 
 **Implementation:**
 
 Update imports. Change:
+
 ```typescript
 import { rpcClient, RpcError } from "../client.js";
 import { processRpc } from "../server.js";
 import type { RpcTransport } from "../client.js";
 ```
+
 to:
+
 ```typescript
 import { newHttpBatchRpcSession, RpcError } from "../http-batch.js";
 import { processRpc } from "../core.js";
@@ -239,21 +275,27 @@ Run: `npm run test -- src/__tests__/e2e.test.ts`
 Expected: All 6 tests pass
 
 **Commit:** `refactor: update e2e.test.ts to use new function names and imports`
+
 <!-- END_TASK_6 -->
 
 <!-- START_TASK_7 -->
+
 ### Task 7: Update spec.test.ts imports
 
 **Files:**
+
 - Modify: `src/__tests__/spec.test.ts`
 
 **Implementation:**
 
 Update imports. Change:
+
 ```typescript
 import { processRpc, handleRpc } from "../server.js";
 ```
+
 to:
+
 ```typescript
 import { processRpc } from "../core.js";
 import { newHttpBatchRpcResponse } from "../http-batch.js";
@@ -269,22 +311,28 @@ Run: `npm run test -- src/__tests__/spec.test.ts`
 Expected: All 17 tests pass
 
 **Commit:** `refactor: update spec.test.ts imports`
+
 <!-- END_TASK_7 -->
 
 <!-- START_TASK_8 -->
+
 ### Task 8: Update property.test.ts imports
 
 **Files:**
+
 - Modify: `src/__tests__/property.test.ts`
 
 **Implementation:**
 
 Update imports. Change:
+
 ```typescript
 import { processRpc } from "../server.js";
 import type { JsonRpcResponse, JsonRpcErrorResponse } from "../core.js";
 ```
+
 to:
+
 ```typescript
 import { processRpc } from "../core.js";
 import type { JsonRpcResponse, JsonRpcErrorResponse } from "../core.js";
@@ -300,9 +348,11 @@ Run: `npm run test -- src/__tests__/property.test.ts`
 Expected: All 4 tests pass
 
 **Commit:** `refactor: update property.test.ts imports`
+
 <!-- END_TASK_8 -->
 
 <!-- START_TASK_9 -->
+
 ### Task 9: Verify all tests pass
 
 **Files:** None (verification only)
@@ -322,4 +372,5 @@ Expected: Build succeeds
 **Step 3: Commit (if any fixups needed)**
 
 If any tests needed adjustment beyond import paths, commit the fixes.
+
 <!-- END_TASK_9 -->

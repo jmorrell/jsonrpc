@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { newWorkersWebSocketRpcResponse, newWebSocketRpcSession, createWebSocketTransport } from "../websocket.js";
+import {
+  newWorkersWebSocketRpcResponse,
+  newWebSocketRpcSession,
+  createWebSocketTransport,
+} from "../websocket.js";
 import { createLinkedTransports, MockWebSocket } from "./test-helpers.js";
 import { rpcSession } from "../session.js";
 
@@ -114,9 +118,7 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       const ws = new MockWebSocket(WebSocket.OPEN);
       globalThis.WebSocket = vi.fn(() => ws) as any;
 
-      const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(
-        "ws://example.com",
-      );
+      const session = newWebSocketRpcSession<{ test: () => Promise<string> }>("ws://example.com");
 
       expect(globalThis.WebSocket).toHaveBeenCalledWith("ws://example.com");
       expect(session).toBeDefined();

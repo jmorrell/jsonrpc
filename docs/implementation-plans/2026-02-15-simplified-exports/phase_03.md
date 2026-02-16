@@ -17,35 +17,42 @@
 This phase implements and tests:
 
 ### simplified-exports.AC1: Single entry point (completed)
+
 - **simplified-exports.AC1.1 Success:** `import { newHttpBatchRpcResponse, newHttpBatchRpcSession, newWorkersWebSocketRpcResponse, newWebSocketRpcSession, newWorkersRpcResponse, RpcError, RpcProtocolError } from "@jmorrell/jsonrpc"` resolves all exports — verified operationally after Task 6 adds WebSocket exports to index.ts (all 7 exports now present)
 
 ### simplified-exports.AC4: WebSocket server
+
 - **simplified-exports.AC4.1 Success:** `newWorkersWebSocketRpcResponse` returns 101 Response with WebSocket for upgrade requests
 - **simplified-exports.AC4.2 Success:** Server exposes `service` methods callable by client over WebSocket
 - **simplified-exports.AC4.3 Success:** `service` parameter is optional (client-only connection)
 - **simplified-exports.AC4.4 Failure:** Returns 400 for non-upgrade requests
 
 ### simplified-exports.AC5: WebSocket client
+
 - **simplified-exports.AC5.1 Success:** `newWebSocketRpcSession(url)` opens WebSocket connection and returns typed proxy
 - **simplified-exports.AC5.2 Success:** `newWebSocketRpcSession(existingWebSocket)` wraps existing WebSocket
 - **simplified-exports.AC5.3 Success:** `localFunctions` parameter enables server-to-client calls (bidirectional)
 - **simplified-exports.AC5.4 Success:** Messages queued while WebSocket is connecting are delivered after open
 
 ### simplified-exports.AC6: Convenience dispatcher
+
 - **simplified-exports.AC6.1 Success:** `newWorkersRpcResponse` routes POST to `newHttpBatchRpcResponse` with CORS header
 - **simplified-exports.AC6.2 Success:** `newWorkersRpcResponse` routes `Upgrade: websocket` to `newWorkersWebSocketRpcResponse`
 - **simplified-exports.AC6.3 Failure:** Returns 400 for other request types
 
 ### simplified-exports.AC3: Disposable return types (WebSocket)
+
 - **simplified-exports.AC3.2 Success:** `newWebSocketRpcSession` return value has `Symbol.dispose` property
 - **simplified-exports.AC3.3 Success:** `using session = newWebSocketRpcSession(...)` disposes WebSocket on scope exit
 
 ---
 
 <!-- START_TASK_1 -->
+
 ### Task 1: Add @cloudflare/workers-types devDependency
 
 **Files:**
+
 - Modify: `package.json` (add devDependency)
 - Modify: `tsconfig.json` (add types)
 
@@ -95,13 +102,16 @@ Expected: All tests still pass (types addition shouldn't break anything)
 git add package.json package-lock.json tsconfig.json
 git commit -m "chore: add @cloudflare/workers-types for WebSocket support"
 ```
+
 <!-- END_TASK_1 -->
 
 <!-- START_SUBCOMPONENT_A (tasks 2-5) -->
 <!-- START_TASK_2 -->
+
 ### Task 2: Create createWebSocketTransport in src/websocket.ts
 
 **Files:**
+
 - Create: `src/websocket.ts`
 
 **Implementation:**
@@ -109,6 +119,7 @@ git commit -m "chore: add @cloudflare/workers-types for WebSocket support"
 Create the `WebSocketMessageTransport` function that adapts the browser/Workers `WebSocket` API to the existing `RpcMessageTransport` interface. This is an internal adapter — not exported from the public API.
 
 Key behaviors:
+
 - **Message routing**: Maps `WebSocket.addEventListener('message', ...)` to `RpcMessageTransport.onMessage`
 - **Close handling**: Maps `WebSocket.addEventListener('close', ...)` to `RpcMessageTransport.onClose`
 - **Error handling**: Maps `WebSocket.addEventListener('error', ...)` to trigger onClose with error
@@ -175,17 +186,21 @@ Run: `npm run build`
 Expected: Builds successfully
 
 **Commit:** `feat: add createWebSocketTransport adapter`
+
 <!-- END_TASK_2 -->
 
 <!-- START_TASK_3 -->
+
 ### Task 3: Implement newWorkersWebSocketRpcResponse
 
 **Files:**
+
 - Modify: `src/websocket.ts` (add function)
 
 **Implementation:**
 
 Add the server-side WebSocket upgrade handler. This function:
+
 1. Checks for `Upgrade: websocket` header — returns 400 if not a WebSocket upgrade request
 2. Creates a `WebSocketPair()` — server and client WebSockets
 3. Calls `server.accept()` to initiate the connection
@@ -223,6 +238,7 @@ export function newWorkersWebSocketRpcResponse<TLocal extends object>(
 ```
 
 Key design decisions:
+
 - `service` is optional (AC4.3) — defaults to empty object for client-only connections
 - Uses `"acceptor"` role — the server side of the connection uses negative IDs
 - The `rpcSession` return value is NOT exposed — the session lives as long as the WebSocket
@@ -234,17 +250,21 @@ Run: `npm run build`
 Expected: Builds successfully
 
 **Commit:** `feat: add newWorkersWebSocketRpcResponse`
+
 <!-- END_TASK_3 -->
 
 <!-- START_TASK_4 -->
+
 ### Task 4: Implement newWebSocketRpcSession
 
 **Files:**
+
 - Modify: `src/websocket.ts` (add function)
 
 **Implementation:**
 
 Add the client-side WebSocket session function. This function:
+
 1. Accepts either a `WebSocket` instance or a `string` URL
 2. If string URL: creates `new WebSocket(url)` — transport queues messages until open
 3. Creates a `WebSocketMessageTransport` from the WebSocket
@@ -262,7 +282,10 @@ type WebSocketRpcSessionOptions = {
  * Create a WebSocket RPC client session.
  * Accepts a WebSocket URL (string) or an existing WebSocket instance.
  */
-export function newWebSocketRpcSession<TRemote extends object, TLocal extends object = Record<string, never>>(
+export function newWebSocketRpcSession<
+  TRemote extends object,
+  TLocal extends object = Record<string, never>,
+>(
   ws: WebSocket | string,
   localFunctions?: TLocal,
   options?: WebSocketRpcSessionOptions,
@@ -270,14 +293,10 @@ export function newWebSocketRpcSession<TRemote extends object, TLocal extends ob
   const socket = typeof ws === "string" ? new WebSocket(ws) : ws;
   const transport = createWebSocketTransport(socket);
 
-  const session = rpcSession<TRemote, TLocal>(
-    transport,
-    localFunctions ?? ({} as TLocal),
-    {
-      role: "initiator",
-      onError: options?.onError,
-    },
-  );
+  const session = rpcSession<TRemote, TLocal>(transport, localFunctions ?? ({} as TLocal), {
+    role: "initiator",
+    onError: options?.onError,
+  });
 
   const RESERVED_PROPS = new Set(["then", "toJSON"]);
 
@@ -299,6 +318,7 @@ export function newWebSocketRpcSession<TRemote extends object, TLocal extends ob
 ```
 
 Key design decisions:
+
 - `ws: WebSocket | string` — accepts both URL and existing WebSocket (AC5.1, AC5.2)
 - `localFunctions` optional — enables bidirectional calls when provided (AC5.3)
 - Message queuing handled by `createWebSocketTransport` (AC5.4)
@@ -314,14 +334,17 @@ Run: `npm run build`
 Expected: Builds successfully
 
 **Commit:** `feat: add newWebSocketRpcSession`
+
 <!-- END_TASK_4 -->
 
 <!-- START_TASK_5 -->
+
 ### Task 5: WebSocket function tests
 
 **Verifies:** simplified-exports.AC4.1, simplified-exports.AC4.2, simplified-exports.AC4.3, simplified-exports.AC4.4, simplified-exports.AC5.1, simplified-exports.AC5.2, simplified-exports.AC5.3, simplified-exports.AC5.4, simplified-exports.AC3.2, simplified-exports.AC3.3
 
 **Files:**
+
 - Create: `src/__tests__/websocket.test.ts`
 
 **Testing:**
@@ -345,6 +368,7 @@ Tests must verify each AC listed above:
 Since these tests run in Vitest (Node environment, not Workers runtime), they cannot use real `WebSocketPair()`. Use these patterns:
 
 **1. Mock WebSocket class for `createWebSocketTransport` and `newWebSocketRpcSession` tests:**
+
 ```typescript
 class MockWebSocket {
   readyState = WebSocket.OPEN; // or CONNECTING for queue tests
@@ -392,14 +416,17 @@ Run: `npm run test`
 Expected: All tests pass (existing + new)
 
 **Commit:** `test: add WebSocket function tests`
+
 <!-- END_TASK_5 -->
 <!-- END_SUBCOMPONENT_A -->
 
 <!-- START_SUBCOMPONENT_B (tasks 6-7) -->
 <!-- START_TASK_6 -->
+
 ### Task 6: Implement newWorkersRpcResponse convenience dispatcher
 
 **Files:**
+
 - Modify: `src/index.ts` (add function and re-exports)
 
 **Implementation:**
@@ -460,19 +487,23 @@ Run: `npm run build`
 Expected: Builds successfully
 
 **Commit:** `feat: add newWorkersRpcResponse convenience dispatcher`
+
 <!-- END_TASK_6 -->
 
 <!-- START_TASK_7 -->
+
 ### Task 7: Convenience dispatcher tests
 
 **Verifies:** simplified-exports.AC6.1, simplified-exports.AC6.2, simplified-exports.AC6.3
 
 **Files:**
+
 - Create or modify: `src/__tests__/dispatcher.test.ts` (or add to an existing test file)
 
 **Testing:**
 
 Tests must verify:
+
 - simplified-exports.AC6.1: POST request → delegates to `newHttpBatchRpcResponse`, response has `Access-Control-Allow-Origin: *` header
 - simplified-exports.AC6.2: Request with `Upgrade: websocket` header → delegates to `newWorkersWebSocketRpcResponse`, returns 101
 - simplified-exports.AC6.3: GET request without upgrade header → returns 400
@@ -487,23 +518,28 @@ Run: `npm run test`
 Expected: All tests pass
 
 **Commit:** `test: add convenience dispatcher tests`
+
 <!-- END_TASK_7 -->
 <!-- END_SUBCOMPONENT_B -->
 
 <!-- START_TASK_8 -->
+
 ### Task 8: Update AGENTS.md for WebSocket additions
 
 **Files:**
+
 - Modify: `AGENTS.md`
 
 **Implementation:**
 
 Add `src/websocket.ts` to the Project Structure section:
+
 ```
 - `src/websocket.ts` - WebSocket transport: newWorkersWebSocketRpcResponse (server) + newWebSocketRpcSession (client with Disposable proxy)
 ```
 
 Update the Package Entry Points section to include WebSocket exports:
+
 ```
 Single public entry point via index.ts:
 
@@ -511,6 +547,7 @@ Single public entry point via index.ts:
 ```
 
 Update Module Dependency Rules:
+
 ```
 - websocket.ts: imports from core.ts and session.ts
 ```
@@ -520,9 +557,11 @@ Update Module Dependency Rules:
 Review AGENTS.md for accuracy.
 
 **Commit:** `docs: update AGENTS.md for WebSocket additions`
+
 <!-- END_TASK_8 -->
 
 <!-- START_TASK_9 -->
+
 ### Task 9: Verify all tests and build pass
 
 **Files:** None (verification only)
@@ -540,4 +579,5 @@ Expected: Build succeeds, `dist/websocket.js` and `dist/websocket.d.ts` generate
 **Step 3: Verify exports**
 
 Check that `dist/index.d.ts` exports all 5 public functions and both error classes.
+
 <!-- END_TASK_9 -->

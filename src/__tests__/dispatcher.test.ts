@@ -12,7 +12,6 @@ const service = {
   },
 };
 
-
 describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
   beforeEach(() => {
     // Mock WebSocketPair for environment where it's not available

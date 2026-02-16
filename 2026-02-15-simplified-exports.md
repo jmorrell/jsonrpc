@@ -78,14 +78,14 @@ api.close();
 
 ## What Changes
 
-| Current | New | Change |
-|---------|-----|--------|
-| `@jmorrell/jsonrpc/server` → `handleRpc` | `newHttpBatchRpcResponse` | Rename + re-export |
-| `@jmorrell/jsonrpc/client` → `rpcClient` | `newHttpBatchRpcSession` | Rename + wrap return type |
-| `@jmorrell/jsonrpc/session` → `rpcSession` | Internal only | No longer directly exported |
-| — | `newWorkersWebSocketRpcResponse` | New: WebSocketPair + session |
-| — | `newWorkersRpcResponse` | New: convenience dispatcher |
-| — | `newWebSocketRpcSession` | New: WebSocket client + session |
+| Current                                    | New                              | Change                          |
+| ------------------------------------------ | -------------------------------- | ------------------------------- |
+| `@jmorrell/jsonrpc/server` → `handleRpc`   | `newHttpBatchRpcResponse`        | Rename + re-export              |
+| `@jmorrell/jsonrpc/client` → `rpcClient`   | `newHttpBatchRpcSession`         | Rename + wrap return type       |
+| `@jmorrell/jsonrpc/session` → `rpcSession` | Internal only                    | No longer directly exported     |
+| —                                          | `newWorkersWebSocketRpcResponse` | New: WebSocketPair + session    |
+| —                                          | `newWorkersRpcResponse`          | New: convenience dispatcher     |
+| —                                          | `newWebSocketRpcSession`         | New: WebSocket client + session |
 
 ## What Stays the Same
 

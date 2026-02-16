@@ -17,6 +17,7 @@
 This phase verifies all ACs in real Workers runtime:
 
 ### simplified-exports.AC7: Core internals preserved
+
 - **simplified-exports.AC7.1 Success:** Existing core, session, spec, and property tests pass unchanged (import paths may update)
 - **simplified-exports.AC7.2 Success:** End-to-end round-trip tests pass with new API names
 
@@ -25,9 +26,11 @@ All other ACs (AC1-AC6) are re-verified in the Workers runtime environment.
 ---
 
 <!-- START_TASK_1 -->
+
 ### Task 1: Install @cloudflare/vitest-pool-workers
 
 **Files:**
+
 - Modify: `package.json` (add devDependency)
 
 **Step 1: Install the package**
@@ -49,12 +52,15 @@ Expected: Package installed successfully
 git add package.json package-lock.json
 git commit -m "chore: add @cloudflare/vitest-pool-workers for Workers runtime tests"
 ```
+
 <!-- END_TASK_1 -->
 
 <!-- START_TASK_2 -->
+
 ### Task 2: Create wrangler.toml
 
 **Files:**
+
 - Create: `wrangler.toml`
 
 **Step 1: Create minimal wrangler config**
@@ -73,12 +79,15 @@ The `main` points to the test worker entry point (created in Task 4). This is us
 git add wrangler.toml
 git commit -m "chore: add minimal wrangler.toml for Workers pool tests"
 ```
+
 <!-- END_TASK_2 -->
 
 <!-- START_TASK_3 -->
+
 ### Task 3: Switch to vitest.workspace.ts
 
 **Files:**
+
 - Delete: `vitest.config.ts`
 - Create: `vitest.workspace.ts`
 
@@ -109,6 +118,7 @@ export default [
 ```
 
 The workspace splits tests by file naming convention:
+
 - `*.test.ts` — regular tests, run in Node
 - `*.workers.test.ts` — Workers pool tests, run in workerd
 
@@ -130,12 +140,15 @@ git rm vitest.config.ts
 git add vitest.workspace.ts
 git commit -m "refactor: switch to vitest workspace with unit + workers projects"
 ```
+
 <!-- END_TASK_3 -->
 
 <!-- START_TASK_4 -->
+
 ### Task 4: Create test worker entry point
 
 **Files:**
+
 - Create: `src/worker.ts`
 
 **Implementation:**
@@ -191,15 +204,18 @@ Expected: Build succeeds. `dist/worker.js` should NOT be present.
 git add src/worker.ts tsconfig.json
 git commit -m "feat: add test worker entry point for Workers runtime tests"
 ```
+
 <!-- END_TASK_4 -->
 
 <!-- START_SUBCOMPONENT_A (tasks 5-6) -->
 <!-- START_TASK_5 -->
+
 ### Task 5: Create Workers runtime tests
 
 **Verifies:** simplified-exports.AC7.1, simplified-exports.AC7.2, and re-verifies AC1-AC6 in Workers runtime
 
 **Files:**
+
 - Create: `src/__tests__/workers.workers.test.ts`
 
 **Testing:**
@@ -229,9 +245,11 @@ Run: `npm run test`
 Expected: All tests pass (unit + workers)
 
 **Commit:** `test: add Workers runtime integration tests`
+
 <!-- END_TASK_5 -->
 
 <!-- START_TASK_6 -->
+
 ### Task 6: Verify full test suite
 
 **Files:** None (verification only)
@@ -249,13 +267,16 @@ Expected: Build succeeds
 **Step 3: Check test counts**
 
 The unit project should run all existing tests (134+). The workers project should run the new workers test file.
+
 <!-- END_TASK_6 -->
 <!-- END_SUBCOMPONENT_A -->
 
 <!-- START_TASK_7 -->
+
 ### Task 7: Update AGENTS.md for Workers test setup
 
 **Files:**
+
 - Modify: `AGENTS.md`
 
 **Implementation:**
@@ -269,14 +290,17 @@ Update the Testing section to mention the dual-config setup:
 ```
 
 Add `src/worker.ts` to Project Structure:
+
 ```
 - `src/worker.ts` - Test worker entry point for Workers runtime tests
 ```
 
 Add `wrangler.toml` mention:
+
 ```
 - `wrangler.toml` - Minimal Workers config for test worker
 ```
 
 **Commit:** `docs: update AGENTS.md for Workers test infrastructure`
+
 <!-- END_TASK_7 -->

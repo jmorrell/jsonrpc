@@ -1,5 +1,17 @@
-import type { JsonRpcRequest, JsonRpcResponse, PromisifyMethods, RpcHandlerOptions } from "./core.js";
-import { isJsonRpcResponse, RpcError, createRequest, errorResponse, processRpc, RESERVED_PROPS } from "./core.js";
+import type {
+  JsonRpcRequest,
+  JsonRpcResponse,
+  PromisifyMethods,
+  RpcHandlerOptions,
+} from "./core.js";
+import {
+  isJsonRpcResponse,
+  RpcError,
+  createRequest,
+  errorResponse,
+  processRpc,
+  RESERVED_PROPS,
+} from "./core.js";
 
 // --- Server: HTTP batch handler ---
 
@@ -89,7 +101,9 @@ type PendingCall = {
 /**
  * Create a typed JSON-RPC 2.0 client with auto-batching over HTTP.
  */
-export function newHttpBatchRpcSession<T extends object>(options: RpcClientOptions): PromisifyMethods<T> & Disposable {
+export function newHttpBatchRpcSession<T extends object>(
+  options: RpcClientOptions,
+): PromisifyMethods<T> & Disposable {
   let transport: RpcTransport;
 
   if (typeof options === "string") {

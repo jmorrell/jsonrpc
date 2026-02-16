@@ -1,10 +1,7 @@
 // src/index.ts
 
 // HTTP batch transport
-export {
-  newHttpBatchRpcResponse,
-  newHttpBatchRpcSession,
-} from "./http-batch.js";
+export { newHttpBatchRpcResponse, newHttpBatchRpcSession } from "./http-batch.js";
 export type { RpcTransport, RpcFetchOptions, RpcClientOptions } from "./http-batch.js";
 
 // WebSocket transport

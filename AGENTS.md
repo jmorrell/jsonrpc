@@ -8,8 +8,8 @@ Last verified: 2026-02-15
 - Formatting: oxfmt (config in .oxfmtrc.json)
 - Linting: oxlint (default correctness rules)
 - Testing: Vitest with fast-check (property-based). Dual workspace:
-  - `unit` project: regular tests in src/__tests__/*.test.ts
-  - `workers` project: Workers runtime tests in src/__tests__/*.workers.test.ts (uses @cloudflare/vitest-pool-workers)
+  - `unit` project: regular tests in src/**tests**/\*.test.ts
+  - `workers` project: Workers runtime tests in src/**tests**/\*.workers.test.ts (uses @cloudflare/vitest-pool-workers)
 - Build: tsc (declarations + JS output to dist/)
 - CI: GitHub Actions (fmt:check, lint, build, test on PRs and pushes to main)
 - Runtime target: Cloudflare Workers (uses Web APIs: Request, Response, fetch)
