@@ -1,6 +1,7 @@
 import type { RpcMessageTransport } from "./session.js";
 import type { RpcHandlerOptions, PromisifyMethods } from "./core.js";
 import { rpcSession } from "./session.js";
+import { RESERVED_PROPS } from "./core.js";
 
 /**
  * Adapt a WebSocket to the RpcMessageTransport interface.
@@ -8,7 +9,7 @@ import { rpcSession } from "./session.js";
  *
  * @internal
  */
-function createWebSocketTransport(ws: WebSocket): RpcMessageTransport {
+export function createWebSocketTransport(ws: WebSocket): RpcMessageTransport {
   let messageQueue: Array<string> | null =
     ws.readyState === WebSocket.CONNECTING ? [] : null;
 
@@ -109,8 +110,6 @@ export function newWebSocketRpcSession<
     role: "initiator",
     onError: options?.onError,
   });
-
-  const RESERVED_PROPS = new Set(["then", "toJSON"]);
 
   return new Proxy({} as PromisifyMethods<TRemote> & Disposable & { close(): void }, {
     get(_target, prop) {
