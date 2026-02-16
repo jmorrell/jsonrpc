@@ -1058,14 +1058,10 @@ describe("session error resilience", () => {
       const initiatorErrors = errors;
       expect(initiatorErrors.length).toBeGreaterThan(0);
       const notifError = initiatorErrors.find(
-        (err) =>
-          err instanceof RpcProtocolError &&
-          err.code === "NOTIFICATION_RECEIVED",
+        (err) => err instanceof RpcProtocolError && err.code === "NOTIFICATION_RECEIVED",
       );
       expect(notifError).toBeDefined();
-      expect((notifError as RpcProtocolError).message).toContain(
-        "notification",
-      );
+      expect((notifError as RpcProtocolError).message).toContain("notification");
 
       sessionA.close();
       sessionB.close();

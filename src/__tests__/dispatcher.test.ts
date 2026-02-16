@@ -126,9 +126,7 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
 
         // Replace MockWebSocketPair with a tracked version
         const OriginalMockWebSocketPair = (globalThis as any).WebSocketPair;
-        (globalThis as any).WebSocketPair = class extends (
-          OriginalMockWebSocketPair
-        ) {
+        (globalThis as any).WebSocketPair = class extends OriginalMockWebSocketPair {
           constructor() {
             super();
             webSocketPairWasInstantiated = true;
