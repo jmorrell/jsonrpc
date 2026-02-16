@@ -68,10 +68,18 @@ describe("Initiator calls method on acceptor", () => {
     };
 
     // Create sessions
-    const sessionA = new RpcSession<AcceptorService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, AcceptorService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<AcceptorService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, AcceptorService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     // Initiator calls remote method
     const result = await sessionA.remote.add(2, 3);
@@ -95,10 +103,18 @@ describe("Initiator calls method on acceptor", () => {
       },
     };
 
-    const sessionA = new RpcSession<AcceptorGreetService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, AcceptorGreetService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<AcceptorGreetService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, AcceptorGreetService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     const result = await sessionA.remote.greet("Alice");
 
@@ -124,10 +140,18 @@ describe("Acceptor calls method on initiator", () => {
       },
     };
 
-    const sessionA = new RpcSession<Record<string, never>, InitiatorService>(transportA, initiatorService, {
-      role: "initiator",
-    });
-    const sessionB = new RpcSession<InitiatorService, Record<string, never>>(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession<Record<string, never>, InitiatorService>(
+      transportA,
+      initiatorService,
+      {
+        role: "initiator",
+      },
+    );
+    const sessionB = new RpcSession<InitiatorService, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
 
     // Acceptor calls remote method
     const result = await sessionB.remote.multiply(3, 4);
@@ -151,10 +175,18 @@ describe("Acceptor calls method on initiator", () => {
       },
     };
 
-    const sessionA = new RpcSession<Record<string, never>, InitiatorUpperCaseService>(transportA, initiatorService, {
-      role: "initiator",
-    });
-    const sessionB = new RpcSession<InitiatorUpperCaseService, Record<string, never>>(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession<Record<string, never>, InitiatorUpperCaseService>(
+      transportA,
+      initiatorService,
+      {
+        role: "initiator",
+      },
+    );
+    const sessionB = new RpcSession<InitiatorUpperCaseService, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
 
     const result = await sessionB.remote.toUpperCase("hello");
 
@@ -190,8 +222,12 @@ describe("Simultaneous calls without ID collision", () => {
     };
 
     // A provides add, calls B's multiply. B provides multiply, calls A's add.
-    const sessionA = new RpcSession<MultiplyService, AddService>(transportA, addService, { role: "initiator" });
-    const sessionB = new RpcSession<AddService, MultiplyService>(transportB, multiplyService, { role: "acceptor" });
+    const sessionA = new RpcSession<MultiplyService, AddService>(transportA, addService, {
+      role: "initiator",
+    });
+    const sessionB = new RpcSession<AddService, MultiplyService>(transportB, multiplyService, {
+      role: "acceptor",
+    });
 
     // Initiator calls: should generate wire-level IDs 1, 2, 3...
     const initiatorCalls = [
@@ -262,8 +298,12 @@ describe("Simultaneous calls without ID collision", () => {
       multiply: (a, b) => Promise.resolve(a * b),
     };
 
-    const sessionA = new RpcSession<MultiplyService, AddService>(transportA, addService, { role: "initiator" });
-    const sessionB = new RpcSession<AddService, MultiplyService>(transportB, multiplyService, { role: "acceptor" });
+    const sessionA = new RpcSession<MultiplyService, AddService>(transportA, addService, {
+      role: "initiator",
+    });
+    const sessionB = new RpcSession<AddService, MultiplyService>(transportB, multiplyService, {
+      role: "acceptor",
+    });
 
     // Both sides make 5 calls each
     const calls = [];
@@ -318,10 +358,18 @@ describe("Void-returning methods", () => {
       },
     };
 
-    const sessionA = new RpcSession<SideEffectService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, SideEffectService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<SideEffectService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, SideEffectService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     const result = await sessionA.remote.sideEffect();
 
@@ -345,10 +393,18 @@ describe("Void-returning methods", () => {
       },
     };
 
-    const sessionA = new RpcSession<DoWorkService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, DoWorkService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<DoWorkService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, DoWorkService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     const result = await sessionA.remote.doWork();
 
@@ -376,10 +432,18 @@ describe("Remote method that throws", () => {
       },
     };
 
-    const sessionA = new RpcSession<ThrowService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, ThrowService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<ThrowService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, ThrowService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     try {
       await sessionA.remote.throwWithData();
@@ -408,10 +472,18 @@ describe("Remote method that throws", () => {
       },
     };
 
-    const sessionA = new RpcSession<ThrowSimpleService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, ThrowSimpleService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<ThrowSimpleService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, ThrowSimpleService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     try {
       await sessionA.remote.throwSimple();
@@ -438,10 +510,18 @@ describe("Remote method that throws", () => {
       },
     };
 
-    const sessionA = new RpcSession<ThrowNoCodeService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, ThrowNoCodeService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<ThrowNoCodeService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, ThrowNoCodeService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     try {
       await sessionA.remote.throwNoCode();
@@ -474,10 +554,18 @@ describe("Method not found", () => {
       nonExistentMethod(): void;
     };
 
-    const sessionA = new RpcSession<ClientExpectedService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, AcceptorExistingService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<ClientExpectedService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, AcceptorExistingService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     try {
       await sessionA.remote.nonExistentMethod();
@@ -500,8 +588,16 @@ describe("Method not found", () => {
     };
 
     // Acceptor has empty service
-    const sessionA = new RpcSession<AnyMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession<AnyMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
 
     try {
       await sessionA.remote.anyMethod();
@@ -532,10 +628,18 @@ describe("Messages sent individually", () => {
       },
     };
 
-    const sessionA = new RpcSession<GetValueService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, GetValueService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<GetValueService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, GetValueService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     // Clear the spy to start fresh
     sendSpy.mockClear();
@@ -565,12 +669,20 @@ describe("Messages sent individually", () => {
       },
     };
 
-    const sessionA = new RpcSession<EchoService, Record<string, never>>(transportA, initiatorService, {
-      role: "initiator",
-    });
-    const sessionB = new RpcSession<Record<string, never>, EchoService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<EchoService, Record<string, never>>(
+      transportA,
+      initiatorService,
+      {
+        role: "initiator",
+      },
+    );
+    const sessionB = new RpcSession<Record<string, never>, EchoService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     // Clear the spy to start fresh
     sendSpy.mockClear();
@@ -608,10 +720,18 @@ describe("session lifecycle", () => {
       },
     };
 
-    const sessionA = new RpcSession<SlowMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, SlowMethodService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<SlowMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, SlowMethodService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     // Start a call that will remain pending
     const callPromise = sessionA.remote.slowMethod();
@@ -646,10 +766,18 @@ describe("session lifecycle", () => {
       },
     };
 
-    const sessionA = new RpcSession<SlowMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, SlowMethodService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<SlowMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, SlowMethodService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     // Spy on transport.close()
     const transportCloseSpy = vi.spyOn(transportA, "close");
@@ -684,8 +812,16 @@ describe("session lifecycle", () => {
       someMethod(): void;
     };
 
-    const sessionA = new RpcSession<SomeMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession<SomeMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
 
     // Close the session
     sessionA.close();
@@ -727,14 +863,22 @@ describe("session lifecycle", () => {
     let onErrorCalled = false;
     let errorLogged: Error | null = null;
 
-    const sessionA = new RpcSession<SlowAsyncMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, SlowAsyncMethodService>(transportB, acceptorService, {
-      role: "acceptor",
-      onError(err) {
-        onErrorCalled = true;
-        errorLogged = err as Error;
+    const sessionA = new RpcSession<SlowAsyncMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, SlowAsyncMethodService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+        onError(err) {
+          onErrorCalled = true;
+          errorLogged = err as Error;
+        },
       },
-    });
+    );
 
     // Start the call
     const callPromise = sessionA.remote.slowAsyncMethod();
@@ -782,10 +926,18 @@ describe("session lifecycle", () => {
       },
     };
 
-    const sessionA = new RpcSession<SlowMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, SlowMethodService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<SlowMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, SlowMethodService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     // Start multiple pending calls
     const call1 = sessionA.remote.slowMethod();
@@ -820,8 +972,16 @@ describe("session lifecycle", () => {
       anyMethod(): void;
     };
 
-    const sessionA = new RpcSession<AnyMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession<AnyMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
 
     // Close multiple times - should not throw
     sessionA.close();
@@ -850,8 +1010,16 @@ describe("Session behavior", () => {
       anyMethod(): void;
     };
 
-    const sessionA = new RpcSession<AnyMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession<AnyMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
 
     sessionA.close();
 
@@ -872,8 +1040,16 @@ describe("Session behavior", () => {
     // what happens when we close sessionA (which closes transportA)
     const transportACloseSpy = vi.spyOn(transportA, "close");
 
-    const sessionA = new RpcSession<Record<string, never>, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
 
     sessionA.close();
 
@@ -898,10 +1074,18 @@ describe("Session behavior", () => {
       },
     };
 
-    const sessionA = new RpcSession<SlowMethodService, Record<string, never>>(transportA, {}, { role: "initiator" });
-    const _sessionB = new RpcSession<Record<string, never>, SlowMethodService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionA = new RpcSession<SlowMethodService, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const _sessionB = new RpcSession<Record<string, never>, SlowMethodService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     const callPromise = sessionA.remote.slowMethod();
 
@@ -946,9 +1130,13 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = new RpcSession<Record<string, never>, EchoService>(transportB, acceptorService, {
-        role: "acceptor",
-      });
+      const sessionB = new RpcSession<Record<string, never>, EchoService>(
+        transportB,
+        acceptorService,
+        {
+          role: "acceptor",
+        },
+      );
 
       // Inject malformed JSON
       const malformedJSON = "not json{";
@@ -998,9 +1186,13 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = new RpcSession<Record<string, never>, EchoService>(transportB, acceptorService, {
-        role: "acceptor",
-      });
+      const sessionB = new RpcSession<Record<string, never>, EchoService>(
+        transportB,
+        acceptorService,
+        {
+          role: "acceptor",
+        },
+      );
 
       // Inject a response with unknown ID
       const unknownResponseJSON = JSON.stringify({
@@ -1054,9 +1246,13 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = new RpcSession<Record<string, never>, EchoService>(transportB, acceptorService, {
-        role: "acceptor",
-      });
+      const sessionB = new RpcSession<Record<string, never>, EchoService>(
+        transportB,
+        acceptorService,
+        {
+          role: "acceptor",
+        },
+      );
 
       // Inject a message that is neither request nor response
       const unroutableJSON = JSON.stringify({
@@ -1137,10 +1333,18 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionA = new RpcSession<EchoService, Record<string, never>>(transportA, {}, { role: "initiator" });
-      const sessionB = new RpcSession<Record<string, never>, EchoService>(transportB, acceptorService, {
-        role: "acceptor",
-      });
+      const sessionA = new RpcSession<EchoService, Record<string, never>>(
+        transportA,
+        {},
+        { role: "initiator" },
+      );
+      const sessionB = new RpcSession<Record<string, never>, EchoService>(
+        transportB,
+        acceptorService,
+        {
+          role: "acceptor",
+        },
+      );
 
       // First call should fail because send() throws
       try {
@@ -1181,12 +1385,16 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionA = new RpcSession<Record<string, never>, TestMethodService>(transportA, initiatorService, {
-        role: "initiator",
-        onError(err) {
-          errors.push(err);
+      const sessionA = new RpcSession<Record<string, never>, TestMethodService>(
+        transportA,
+        initiatorService,
+        {
+          role: "initiator",
+          onError(err) {
+            errors.push(err);
+          },
         },
-      });
+      );
 
       const sessionB = new RpcSession<TestMethodService, Record<string, never>>(
         transportB,
@@ -1387,9 +1595,13 @@ describe("session error resilience", () => {
       },
     };
 
-    const sessionB = new RpcSession<Record<string, never>, EchoService>(transportB, acceptorService, {
-      role: "acceptor",
-    });
+    const sessionB = new RpcSession<Record<string, never>, EchoService>(
+      transportB,
+      acceptorService,
+      {
+        role: "acceptor",
+      },
+    );
 
     // Inject multiple errors
     // 1. Malformed JSON
@@ -1469,16 +1681,12 @@ describe("Bidirectional RPC", () => {
       getLocale: () => "en-US",
     };
 
-    const sessionA = new RpcSession<GreetingService, MathService>(
-      transportA,
-      mathService,
-      { role: "initiator" },
-    );
-    const sessionB = new RpcSession<MathService, GreetingService>(
-      transportB,
-      greetingService,
-      { role: "acceptor" },
-    );
+    const sessionA = new RpcSession<GreetingService, MathService>(transportA, mathService, {
+      role: "initiator",
+    });
+    const sessionB = new RpcSession<MathService, GreetingService>(transportB, greetingService, {
+      role: "acceptor",
+    });
 
     // A calls B's greeting service
     expect(await sessionA.remote.greet("world")).toBe("Hello, world!");
@@ -1504,16 +1712,12 @@ describe("Bidirectional RPC", () => {
       getLocale: () => "en-US",
     };
 
-    const sessionA = new RpcSession<GreetingService, MathService>(
-      transportA,
-      mathService,
-      { role: "initiator" },
-    );
-    const sessionB = new RpcSession<MathService, GreetingService>(
-      transportB,
-      greetingService,
-      { role: "acceptor" },
-    );
+    const sessionA = new RpcSession<GreetingService, MathService>(transportA, mathService, {
+      role: "initiator",
+    });
+    const sessionB = new RpcSession<MathService, GreetingService>(transportB, greetingService, {
+      role: "acceptor",
+    });
 
     // Both sides fire calls at the same time
     const [greeting, locale, sum, product] = await Promise.all([
@@ -1546,11 +1750,9 @@ describe("Bidirectional RPC", () => {
       getMultiplier: () => 10,
     };
 
-    const sessionA = new RpcSession<ServerService, ClientService>(
-      transportA,
-      clientService,
-      { role: "initiator" },
-    );
+    const sessionA = new RpcSession<ServerService, ClientService>(transportA, clientService, {
+      role: "initiator",
+    });
 
     // Server service calls back to the client to get the multiplier
     const serverService: ServerService = {
@@ -1560,11 +1762,9 @@ describe("Bidirectional RPC", () => {
       },
     };
 
-    const sessionB = new RpcSession<ClientService, ServerService>(
-      transportB,
-      serverService,
-      { role: "acceptor" },
-    );
+    const sessionB = new RpcSession<ClientService, ServerService>(transportB, serverService, {
+      role: "acceptor",
+    });
 
     const result = await sessionA.remote.computeWithClientMultiplier(3, 4);
     expect(result).toBe(70); // (3 + 4) * 10
@@ -1599,16 +1799,10 @@ describe("Bidirectional RPC", () => {
       },
     };
 
-    const sessionA = new RpcSession<ServiceB, ServiceA>(
-      transportA,
-      serviceA,
-      { role: "initiator" },
-    );
-    const sessionB = new RpcSession<ServiceA, ServiceB>(
-      transportB,
-      serviceB,
-      { role: "acceptor" },
-    );
+    const sessionA = new RpcSession<ServiceB, ServiceA>(transportA, serviceA, {
+      role: "initiator",
+    });
+    const sessionB = new RpcSession<ServiceA, ServiceB>(transportB, serviceB, { role: "acceptor" });
 
     // A calls B, gets B's error
     await expect(sessionA.remote.failB()).rejects.toThrow(RpcError);
@@ -1646,16 +1840,12 @@ describe("Bidirectional RPC", () => {
       slow: () => new Promise(() => {}),
     };
 
-    const sessionA = new RpcSession<SlowService, SlowService>(
-      transportA,
-      neverResolveA,
-      { role: "initiator" },
-    );
-    const sessionB = new RpcSession<SlowService, SlowService>(
-      transportB,
-      neverResolveB,
-      { role: "acceptor" },
-    );
+    const sessionA = new RpcSession<SlowService, SlowService>(transportA, neverResolveA, {
+      role: "initiator",
+    });
+    const sessionB = new RpcSession<SlowService, SlowService>(transportB, neverResolveB, {
+      role: "acceptor",
+    });
 
     // Both sides have pending outgoing calls
     const pA = sessionA.remote.slow();
