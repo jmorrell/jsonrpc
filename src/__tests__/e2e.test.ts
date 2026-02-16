@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { newHttpBatchRpcSession, processRpc, RpcError } from "../index.js";
-import type { RpcTransport } from "../index.js";
+import type { RpcRequestFn } from "../index.js";
 
 // Service definition
 type CalcService = {
@@ -28,7 +28,7 @@ const calcService: CalcService = {
 };
 
 // In-memory transport: client → processRpc → response
-function createInMemoryTransport(service: any): RpcTransport {
+function createInMemoryTransport(service: any): RpcRequestFn {
   return async (body: string) => {
     const parsed = JSON.parse(body);
     const result = await processRpc(parsed, service);

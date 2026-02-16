@@ -1,12 +1,12 @@
 import { describe, it, expect, vi } from "vitest";
 import { newHttpBatchRpcSession, newHttpBatchRpcResponse, RpcError } from "../http-batch.js";
-import type { RpcTransport } from "../http-batch.js";
+import type { RpcRequestFn } from "../http-batch.js";
 
 // --- Helpers ---
 
-function mockTransport(): { transport: RpcTransport; calls: string[] } {
+function mockTransport(): { transport: RpcRequestFn; calls: string[] } {
   const calls: string[] = [];
-  const transport: RpcTransport = vi.fn(async (body: string) => {
+  const transport: RpcRequestFn = vi.fn(async (body: string) => {
     calls.push(body);
     const req = JSON.parse(body);
     if (Array.isArray(req)) {
@@ -79,7 +79,7 @@ describe("newHttpBatchRpcSession batching", () => {
   });
 
   it("dispatches correct result to correct promise by ID", async () => {
-    const transport: RpcTransport = vi.fn(async (body: string) => {
+    const transport: RpcRequestFn = vi.fn(async (body: string) => {
       const req = JSON.parse(body);
       // Return responses in reverse order
       const responses = [...req].reverse().map((r: any) => ({
@@ -97,7 +97,7 @@ describe("newHttpBatchRpcSession batching", () => {
   });
 
   it("batch with mixed successes and errors", async () => {
-    const transport: RpcTransport = vi.fn(async (body: string) => {
+    const transport: RpcRequestFn = vi.fn(async (body: string) => {
       const req = JSON.parse(body);
       const responses = req.map((r: any) => {
         if (r.method === "fail") {
@@ -124,7 +124,7 @@ describe("newHttpBatchRpcSession batching", () => {
   });
 
   it("transport failure rejects all promises in batch", async () => {
-    const transport: RpcTransport = vi.fn(async () => {
+    const transport: RpcRequestFn = vi.fn(async () => {
       throw new Error("network error");
     });
     type Svc = { a(): string; b(): string };
@@ -136,7 +136,7 @@ describe("newHttpBatchRpcSession batching", () => {
   });
 
   it("fewer responses than requests rejects unmatched promises", async () => {
-    const transport: RpcTransport = vi.fn(async (body: string) => {
+    const transport: RpcRequestFn = vi.fn(async (body: string) => {
       const req = JSON.parse(body);
       // Only respond to first request
       return JSON.stringify([{ jsonrpc: "2.0", id: req[0].id, result: "ok" }]);
@@ -150,7 +150,7 @@ describe("newHttpBatchRpcSession batching", () => {
   });
 
   it("unrecognized IDs in batch responses are silently ignored", async () => {
-    const transport: RpcTransport = vi.fn(async (body: string) => {
+    const transport: RpcRequestFn = vi.fn(async (body: string) => {
       const req = JSON.parse(body);
       return JSON.stringify([
         { jsonrpc: "2.0", id: req[0].id, result: "ok" },
@@ -166,7 +166,7 @@ describe("newHttpBatchRpcSession batching", () => {
   });
 
   it("single request with mismatched response ID rejects", async () => {
-    const transport: RpcTransport = vi.fn(async () => {
+    const transport: RpcRequestFn = vi.fn(async () => {
       return JSON.stringify({ jsonrpc: "2.0", id: 99999, result: "wrong" });
     });
     type Svc = { a(): string };
@@ -175,7 +175,7 @@ describe("newHttpBatchRpcSession batching", () => {
   });
 
   it("server returns single error object for batch → all reject", async () => {
-    const transport: RpcTransport = vi.fn(async () => {
+    const transport: RpcRequestFn = vi.fn(async () => {
       return JSON.stringify({
         jsonrpc: "2.0",
         id: null,

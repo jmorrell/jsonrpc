@@ -56,7 +56,7 @@ export async function newHttpBatchRpcResponse<T>(
 // --- Client: HTTP batch session ---
 
 // Client transport abstraction — takes serialized JSON body, returns serialized JSON response
-export type RpcTransport = (body: string) => Promise<string>;
+export type RpcRequestFn = (body: string) => Promise<string>;
 
 export type RpcFetchOptions = {
   url: string;
@@ -65,15 +65,15 @@ export type RpcFetchOptions = {
 
 export type RpcClientOptions =
   | string
-  | ((RpcFetchOptions | { transport: RpcTransport }) & {
+  | ((RpcFetchOptions | { transport: RpcRequestFn }) & {
       getHeaders?: never;
     })
   | (RpcFetchOptions & { transport?: never });
 
 /**
- * Create a fetch-based RpcTransport.
+ * Create a fetch-based RpcRequestFn.
  */
-function fetchTransport(options: RpcFetchOptions): RpcTransport {
+function fetchTransport(options: RpcFetchOptions): RpcRequestFn {
   return async (body: string): Promise<string> => {
     const headers = options.getHeaders ? await options.getHeaders() : {};
     const res = await fetch(options.url, {
@@ -104,7 +104,7 @@ type PendingCall = {
 export function newHttpBatchRpcSession<T extends object>(
   options: RpcClientOptions,
 ): PromisifyMethods<T> & Disposable {
-  let transport: RpcTransport;
+  let transport: RpcRequestFn;
 
   if (typeof options === "string") {
     transport = fetchTransport({ url: options });
