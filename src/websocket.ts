@@ -1,4 +1,4 @@
-import type { RpcMessageTransport, RpcSessionOptions } from "./session.js";
+import type { RpcMessageTransport } from "./session.js";
 import type { RpcHandlerOptions, PromisifyMethods } from "./core.js";
 import { rpcSession } from "./session.js";
 
@@ -39,7 +39,7 @@ function createWebSocketTransport(ws: WebSocket): RpcMessageTransport {
       ws.addEventListener("close", () => {
         handler();
       });
-      ws.addEventListener("error", (event: Event) => {
+      ws.addEventListener("error", (_event: Event) => {
         handler(new Error("WebSocket error"));
       });
     },

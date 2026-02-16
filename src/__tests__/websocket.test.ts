@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { newWorkersWebSocketRpcResponse, newWebSocketRpcSession } from "../websocket.js";
 import { createLinkedTransports } from "./test-helpers.js";
 import { rpcSession } from "../session.js";
@@ -271,7 +271,8 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       const ws = new MockWebSocket(WebSocket.CONNECTING);
 
       // Create session with connecting socket
-      const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
 
       // In real usage, the RPC would queue messages
       // This is tested through transport layer
@@ -337,7 +338,7 @@ function createWebSocketTransport(ws: WebSocket): RpcMessageTransport {
       ws.addEventListener("close", () => {
         handler();
       });
-      ws.addEventListener("error", (event: Event) => {
+      ws.addEventListener("error", (_event: Event) => {
         handler(new Error("WebSocket error"));
       });
     },
