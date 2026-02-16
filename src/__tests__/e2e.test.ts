@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { newHttpBatchRpcSession, processRpc, RpcError } from "../index.js";
-import type { RpcRequestFn } from "../index.js";
+import { RpcSession, RpcError } from "../index.js";
+import type { RpcTransport } from "../index.js";
 
 // Service definition
 type CalcService = {
@@ -27,31 +27,75 @@ const calcService: CalcService = {
   logEvent: vi.fn(),
 };
 
-// In-memory transport: client → processRpc → response
-function createInMemoryTransport(service: any): RpcRequestFn {
-  return async (body: string) => {
-    const parsed = JSON.parse(body);
-    const result = await processRpc(parsed, service);
-    if (result === null) return "";
-    return JSON.stringify(result);
+function createLinkedTransports(): [RpcTransport, RpcTransport] {
+  let messageHandlerA: ((message: string) => void) | null = null;
+  let messageHandlerB: ((message: string) => void) | null = null;
+  let closeHandlerA: ((reason?: Error) => void) | null = null;
+  let closeHandlerB: ((reason?: Error) => void) | null = null;
+  let closed = false;
+
+  const transportA: RpcTransport = {
+    send(message: string) {
+      if (closed) throw new Error("Transport is closed");
+      messageHandlerB?.(message);
+    },
+    onMessage(handler) {
+      messageHandlerA = handler;
+    },
+    onClose(handler) {
+      closeHandlerA = handler;
+    },
+    close() {
+      if (closed) return;
+      closed = true;
+      const reason = new Error("Connection closed");
+      closeHandlerA?.(reason);
+      closeHandlerB?.(reason);
+    },
   };
+
+  const transportB: RpcTransport = {
+    send(message: string) {
+      if (closed) throw new Error("Transport is closed");
+      messageHandlerA?.(message);
+    },
+    onMessage(handler) {
+      messageHandlerB = handler;
+    },
+    onClose(handler) {
+      closeHandlerB = handler;
+    },
+    close() {
+      if (closed) return;
+      closed = true;
+      const reason = new Error("Connection closed");
+      closeHandlerA?.(reason);
+      closeHandlerB?.(reason);
+    },
+  };
+
+  return [transportA, transportB];
 }
 
-describe("e2e: client → server round trip", () => {
+describe("e2e: client ↔ server round trip", () => {
   it("single call", async () => {
-    const transport = createInMemoryTransport(calcService);
-    const client = newHttpBatchRpcSession<CalcService>({ transport });
-    const result = await client.add(3, 4);
+    const [tA, tB] = createLinkedTransports();
+    const client = new RpcSession<CalcService, Record<string, never>>(tA, {}, { role: "initiator" });
+    new RpcSession(tB, calcService, { role: "acceptor" });
+
+    const result = await client.remote.add(3, 4);
     expect(result).toBe(7);
   });
 
-  it("batch of 3 calls", async () => {
-    const transport = createInMemoryTransport(calcService);
-    const client = newHttpBatchRpcSession<CalcService>({ transport });
+  it("concurrent calls", async () => {
+    const [tA, tB] = createLinkedTransports();
+    const client = new RpcSession<CalcService, Record<string, never>>(tA, {}, { role: "initiator" });
+    new RpcSession(tB, calcService, { role: "acceptor" });
+
     const [a, b, c] = await Promise.all([
-      client.add(1, 2),
-      client.subtract(10, 3),
-      client.multiply(4, 5),
+      client.remote.add(1, 2),
+      client.remote.subtract(10, 3),
+      client.remote.multiply(4, 5),
     ]);
     expect(a).toBe(3);
     expect(b).toBe(7);
@@ -61,19 +105,22 @@ describe("e2e: client → server round trip", () => {
   it("void-returning method resolves Promise<void>", async () => {
     const logFn = vi.fn();
     const svc = { ...calcService, logEvent: logFn };
-    const transport = createInMemoryTransport(svc);
-    type Svc = typeof calcService;
-    const client = newHttpBatchRpcSession<Svc>({ transport });
-    await client.logEvent("page_view");
+    const [tA, tB] = createLinkedTransports();
+    const client = new RpcSession<CalcService, Record<string, never>>(tA, {}, { role: "initiator" });
+    new RpcSession(tB, svc, { role: "acceptor" });
+
+    await client.remote.logEvent("page_view");
     expect(logFn).toHaveBeenCalledWith("page_view");
   });
 
   it("error propagation: server throws → client gets RpcError", async () => {
-    const transport = createInMemoryTransport(calcService);
-    const client = newHttpBatchRpcSession<CalcService>({ transport });
-    await expect(client.throwError()).rejects.toThrow(RpcError);
+    const [tA, tB] = createLinkedTransports();
+    const client = new RpcSession<CalcService, Record<string, never>>(tA, {}, { role: "initiator" });
+    new RpcSession(tB, calcService, { role: "acceptor" });
+
+    await expect(client.remote.throwError()).rejects.toThrow(RpcError);
     try {
-      await client.throwError();
+      await client.remote.throwError();
     } catch (err) {
       expect(err).toBeInstanceOf(RpcError);
       expect((err as RpcError).code).toBe(-32001);
@@ -82,12 +129,14 @@ describe("e2e: client → server round trip", () => {
     }
   });
 
-  it("batch with mixed success/error", async () => {
-    const transport = createInMemoryTransport(calcService);
-    const client = newHttpBatchRpcSession<CalcService>({ transport });
-    const pAdd = client.add(1, 2);
-    const pThrow = client.throwError();
-    const pSub = client.subtract(5, 3);
+  it("concurrent calls with mixed success/error", async () => {
+    const [tA, tB] = createLinkedTransports();
+    const client = new RpcSession<CalcService, Record<string, never>>(tA, {}, { role: "initiator" });
+    new RpcSession(tB, calcService, { role: "acceptor" });
+
+    const pAdd = client.remote.add(1, 2);
+    const pThrow = client.remote.throwError();
+    const pSub = client.remote.subtract(5, 3);
 
     expect(await pAdd).toBe(3);
     await expect(pThrow).rejects.toThrow(RpcError);
@@ -95,11 +144,13 @@ describe("e2e: client → server round trip", () => {
   });
 
   it("method not found propagates as RpcError", async () => {
-    const transport = createInMemoryTransport(calcService);
-    const client = newHttpBatchRpcSession<{ nonexistent(): void }>({ transport });
-    await expect(client.nonexistent()).rejects.toThrow(RpcError);
+    const [tA, tB] = createLinkedTransports();
+    const client = new RpcSession<{ nonexistent(): void }, Record<string, never>>(tA, {}, { role: "initiator" });
+    new RpcSession(tB, calcService, { role: "acceptor" });
+
+    await expect(client.remote.nonexistent()).rejects.toThrow(RpcError);
     try {
-      await client.nonexistent();
+      await client.remote.nonexistent();
     } catch (err) {
       expect((err as RpcError).code).toBe(-32601);
     }
