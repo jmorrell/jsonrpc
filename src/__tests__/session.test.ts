@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { rpcSession, RpcError, RpcProtocolError } from "../session.js";
+import { RpcSession, RpcError, RpcProtocolError } from "../session.js";
 import type { RpcTransport } from "../session.js";
 
 function createLinkedTransports(): [RpcTransport, RpcTransport] {
@@ -64,8 +64,8 @@ describe("Initiator calls method on acceptor", () => {
     };
 
     // Create sessions
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -87,8 +87,8 @@ describe("Initiator calls method on acceptor", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -112,10 +112,10 @@ describe("Acceptor calls method on initiator", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, initiatorService, {
+    const sessionA = new RpcSession(transportA, initiatorService, {
       role: "initiator",
     });
-    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+    const sessionB = new RpcSession(transportB, {}, { role: "acceptor" });
 
     // Acceptor calls remote method
     const result = await (sessionB.remote as any).multiply(3, 4);
@@ -135,10 +135,10 @@ describe("Acceptor calls method on initiator", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, initiatorService, {
+    const sessionA = new RpcSession(transportA, initiatorService, {
       role: "initiator",
     });
-    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+    const sessionB = new RpcSession(transportB, {}, { role: "acceptor" });
 
     const result = await (sessionB.remote as any).toUpperCase("hello");
 
@@ -167,8 +167,8 @@ describe("Simultaneous calls without ID collision", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, service, { role: "initiator" });
-    const sessionB = rpcSession(transportB, service, { role: "acceptor" });
+    const sessionA = new RpcSession(transportA, service, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, service, { role: "acceptor" });
 
     // Initiator calls: should generate wire-level IDs 1, 2, 3...
     const initiatorCalls = [
@@ -237,8 +237,8 @@ describe("Simultaneous calls without ID collision", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, service, { role: "initiator" });
-    const sessionB = rpcSession(transportB, service, { role: "acceptor" });
+    const sessionA = new RpcSession(transportA, service, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, service, { role: "acceptor" });
 
     // Both sides make 5 calls each
     const calls = [];
@@ -289,8 +289,8 @@ describe("Void-returning methods", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -312,8 +312,8 @@ describe("Void-returning methods", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -339,8 +339,8 @@ describe("Remote method that throws", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -367,8 +367,8 @@ describe("Remote method that throws", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -393,8 +393,8 @@ describe("Remote method that throws", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -421,8 +421,8 @@ describe("Method not found", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -443,8 +443,8 @@ describe("Method not found", () => {
     const [transportA, transportB] = createLinkedTransports();
 
     // Acceptor has empty service
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, {}, { role: "acceptor" });
 
     try {
       await (sessionA.remote as any).anyMethod();
@@ -471,8 +471,8 @@ describe("Messages sent individually", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -500,10 +500,10 @@ describe("Messages sent individually", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, initiatorService, {
+    const sessionA = new RpcSession(transportA, initiatorService, {
       role: "initiator",
     });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -539,8 +539,8 @@ describe("session lifecycle", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -577,8 +577,8 @@ describe("session lifecycle", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -611,8 +611,8 @@ describe("session lifecycle", () => {
   it("calling session.remote.method() after close rejects immediately", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, {}, { role: "acceptor" });
 
     // Close the session
     sessionA.close();
@@ -650,8 +650,8 @@ describe("session lifecycle", () => {
     let onErrorCalled = false;
     let errorLogged: Error | null = null;
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
       onError(err) {
         onErrorCalled = true;
@@ -705,8 +705,8 @@ describe("session lifecycle", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -739,8 +739,8 @@ describe("session lifecycle", () => {
   it("calling session.close() multiple times is safe", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, {}, { role: "acceptor" });
 
     // Close multiple times - should not throw
     sessionA.close();
@@ -765,8 +765,8 @@ describe("Session behavior", () => {
   it("session.close() prevents further calls", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, {}, { role: "acceptor" });
 
     sessionA.close();
 
@@ -787,8 +787,8 @@ describe("Session behavior", () => {
     // what happens when we close sessionA (which closes transportA)
     const transportACloseSpy = vi.spyOn(transportA, "close");
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const sessionB = new RpcSession(transportB, {}, { role: "acceptor" });
 
     sessionA.close();
 
@@ -809,8 +809,8 @@ describe("Session behavior", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const _sessionB = rpcSession(transportB, acceptorService, {
+    const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+    const _sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 
@@ -836,7 +836,7 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(
+      const sessionA = new RpcSession(
         transportA,
         {},
         {
@@ -853,7 +853,7 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = rpcSession(transportB, acceptorService, {
+      const sessionB = new RpcSession(transportB, acceptorService, {
         role: "acceptor",
       });
 
@@ -884,7 +884,7 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(
+      const sessionA = new RpcSession(
         transportA,
         {},
         {
@@ -901,7 +901,7 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = rpcSession(transportB, acceptorService, {
+      const sessionB = new RpcSession(transportB, acceptorService, {
         role: "acceptor",
       });
 
@@ -936,7 +936,7 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(
+      const sessionA = new RpcSession(
         transportA,
         {},
         {
@@ -953,7 +953,7 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = rpcSession(transportB, acceptorService, {
+      const sessionB = new RpcSession(transportB, acceptorService, {
         role: "acceptor",
       });
 
@@ -1032,8 +1032,8 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-      const sessionB = rpcSession(transportB, acceptorService, {
+      const sessionA = new RpcSession(transportA, {}, { role: "initiator" });
+      const sessionB = new RpcSession(transportB, acceptorService, {
         role: "acceptor",
       });
 
@@ -1072,14 +1072,14 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionA = rpcSession(transportA, initiatorService, {
+      const sessionA = new RpcSession(transportA, initiatorService, {
         role: "initiator",
         onError(err) {
           errors.push(err);
         },
       });
 
-      const sessionB = rpcSession(
+      const sessionB = new RpcSession(
         transportB,
         {},
         {
@@ -1122,7 +1122,7 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(
+      const sessionA = new RpcSession(
         transportA,
         {},
         {
@@ -1133,7 +1133,7 @@ describe("session error resilience", () => {
         },
       );
 
-      const sessionB = rpcSession(
+      const sessionB = new RpcSession(
         transportB,
         { echo: (v: string) => Promise.resolve(v) },
         { role: "acceptor" },
@@ -1162,7 +1162,7 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(
+      const sessionA = new RpcSession(
         transportA,
         {},
         {
@@ -1173,7 +1173,7 @@ describe("session error resilience", () => {
         },
       );
 
-      const sessionB = rpcSession(
+      const sessionB = new RpcSession(
         transportB,
         { echo: (v: string) => Promise.resolve(v) },
         { role: "acceptor" },
@@ -1203,7 +1203,7 @@ describe("session error resilience", () => {
       const [transportA, transportB] = createLinkedTransports();
 
       const errors: unknown[] = [];
-      const sessionA = rpcSession(
+      const sessionA = new RpcSession(
         transportA,
         {},
         {
@@ -1214,7 +1214,7 @@ describe("session error resilience", () => {
         },
       );
 
-      const sessionB = rpcSession(
+      const sessionB = new RpcSession(
         transportB,
         { echo: (v: string) => Promise.resolve(v) },
         { role: "acceptor" },
@@ -1245,7 +1245,7 @@ describe("session error resilience", () => {
     const [transportA, transportB] = createLinkedTransports();
 
     const errorLog: unknown[] = [];
-    const sessionA = rpcSession(
+    const sessionA = new RpcSession(
       transportA,
       {},
       {
@@ -1262,7 +1262,7 @@ describe("session error resilience", () => {
       },
     };
 
-    const sessionB = rpcSession(transportB, acceptorService, {
+    const sessionB = new RpcSession(transportB, acceptorService, {
       role: "acceptor",
     });
 

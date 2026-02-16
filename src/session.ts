@@ -25,105 +25,144 @@ export type RpcSessionOptions = {
   onError?: (err: RpcProtocolError) => void;
 };
 
-export type RpcSession<TRemote extends object, _TLocal extends object> = {
-  remote: PromisifyMethods<TRemote>;
-  close(): void;
-};
-
 type PendingCall = {
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
 };
 
-export function rpcSession<TRemote extends object, TLocal extends object>(
-  transport: RpcTransport,
-  service: TLocal,
-  options?: RpcSessionOptions,
-): RpcSession<TRemote, TLocal> {
-  const role = options?.role ?? "initiator";
-  const onError = options?.onError;
-  let nextId = role === "initiator" ? 1 : -1;
-  const idStep = role === "initiator" ? 1 : -1;
-  const pendingCalls = new Map<number | string, PendingCall>();
-  let closed = false;
+class RpcSessionImpl<TRemote extends object, TLocal extends object> {
+  readonly remote: PromisifyMethods<TRemote>;
+  private nextId: number;
+  private readonly idStep: number;
+  private readonly pendingCalls = new Map<number | string, PendingCall>();
+  private closed = false;
+  private readonly onError?: (err: RpcProtocolError) => void;
+  private readonly handlerOptions: RpcHandlerOptions | undefined;
 
-  // Build RpcHandlerOptions to pass onError through to processRpc
-  const handlerOptions: RpcHandlerOptions | undefined = onError ? { onError } : undefined;
+  constructor(
+    private readonly transport: RpcTransport,
+    private readonly service: TLocal,
+    options?: RpcSessionOptions,
+  ) {
+    const role = options?.role ?? "initiator";
+    this.onError = options?.onError;
+    this.nextId = role === "initiator" ? 1 : -1;
+    this.idStep = role === "initiator" ? 1 : -1;
+    this.handlerOptions = this.onError ? { onError: this.onError } : undefined;
 
-  // --- Incoming message handler ---
-  transport.onMessage((message: string) => {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(message);
-    } catch (err) {
-      onError?.(
-        new RpcProtocolError("PARSE_ERROR", "Failed to parse JSON-RPC message", { cause: err }),
+    transport.onMessage((message: string) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(message);
+      } catch (err) {
+        this.onError?.(
+          new RpcProtocolError("PARSE_ERROR", "Failed to parse JSON-RPC message", { cause: err }),
+        );
+        return;
+      }
+
+      if (typeof parsed !== "object" || parsed === null) {
+        this.onError?.(
+          new RpcProtocolError("INVALID_MESSAGE", "Received non-object JSON-RPC message"),
+        );
+        return;
+      }
+
+      const obj = parsed as Record<string, unknown>;
+
+      // Route: has "method" → incoming request
+      if ("method" in obj) {
+        this.handleIncomingRequest(parsed);
+        return;
+      }
+
+      // Route: has "result" or "error" → incoming response
+      if ("result" in obj || "error" in obj) {
+        this.handleIncomingResponse(parsed);
+        return;
+      }
+
+      // Neither request nor response
+      this.onError?.(
+        new RpcProtocolError("UNROUTABLE_MESSAGE", "Received unroutable JSON-RPC message"),
       );
-      return;
-    }
+    });
 
-    if (typeof parsed !== "object" || parsed === null) {
-      onError?.(new RpcProtocolError("INVALID_MESSAGE", "Received non-object JSON-RPC message"));
-      return;
-    }
+    transport.onClose((reason?: Error) => {
+      this.closed = true;
+      const closeError = reason ?? new Error("Connection closed");
+      for (const [, pending] of this.pendingCalls) {
+        pending.reject(closeError);
+      }
+      this.pendingCalls.clear();
+    });
 
-    const obj = parsed as Record<string, unknown>;
+    this.remote = new Proxy({} as TRemote, {
+      get: (_target, prop) => {
+        if (typeof prop === "symbol") return undefined;
+        if (RESERVED_PROPS.has(prop as string)) return undefined;
 
-    // Route: has "method" → incoming request
-    if ("method" in obj) {
-      handleIncomingRequest(parsed);
-      return;
-    }
+        return (...args: Array<unknown>) => {
+          if (this.closed) {
+            return Promise.reject(new Error("Session is closed"));
+          }
 
-    // Route: has "result" or "error" → incoming response
-    if ("result" in obj || "error" in obj) {
-      handleIncomingResponse(parsed);
-      return;
-    }
+          const id = this.nextId;
+          this.nextId += this.idStep;
+          const req = createRequest(prop as string, args, () => id);
 
-    // Neither request nor response
-    onError?.(new RpcProtocolError("UNROUTABLE_MESSAGE", "Received unroutable JSON-RPC message"));
-  });
+          return new Promise((resolve, reject) => {
+            this.pendingCalls.set(id, { resolve, reject });
+            try {
+              this.transport.send(JSON.stringify(req));
+            } catch (err) {
+              this.pendingCalls.delete(id);
+              reject(err);
+            }
+          });
+        };
+      },
+    }) as PromisifyMethods<TRemote>;
+  }
 
-  // --- Handle incoming request ---
-  async function handleIncomingRequest(parsed: unknown): Promise<void> {
-    const response = await processRpc(parsed, service, handlerOptions);
-    // response is null for notifications (ignored by processRpc after Phase 2)
+  private async handleIncomingRequest(parsed: unknown): Promise<void> {
+    const response = await processRpc(parsed, this.service, this.handlerOptions);
     if (response === null) return;
 
     try {
-      transport.send(JSON.stringify(response));
+      this.transport.send(JSON.stringify(response));
     } catch (err) {
-      onError?.(
+      this.onError?.(
         new RpcProtocolError("SEND_FAILED", "Failed to send JSON-RPC response", { cause: err }),
       );
     }
   }
 
-  // --- Handle incoming response ---
-  function handleIncomingResponse(parsed: unknown): void {
+  private handleIncomingResponse(parsed: unknown): void {
     if (!isJsonRpcResponse(parsed)) {
-      onError?.(new RpcProtocolError("INVALID_RESPONSE", "Received invalid JSON-RPC response"));
+      this.onError?.(
+        new RpcProtocolError("INVALID_RESPONSE", "Received invalid JSON-RPC response"),
+      );
       return;
     }
 
     const id = parsed.id;
     if (id === null || id === undefined) {
-      onError?.(
+      this.onError?.(
         new RpcProtocolError("NULL_RESPONSE_ID", "Received response with null/undefined ID"),
       );
       return;
     }
 
-    const pending = pendingCalls.get(id);
+    const pending = this.pendingCalls.get(id);
     if (!pending) {
-      onError?.(
+      this.onError?.(
         new RpcProtocolError("UNKNOWN_RESPONSE_ID", `Received response for unknown ID: ${id}`),
       );
       return;
     }
 
-    pendingCalls.delete(id);
+    this.pendingCalls.delete(id);
 
     if ("error" in parsed) {
       const { code, message, data } = (parsed as JsonRpcErrorResponse).error;
@@ -133,55 +172,32 @@ export function rpcSession<TRemote extends object, TLocal extends object>(
     }
   }
 
-  // --- Transport close handler ---
-  transport.onClose((reason?: Error) => {
-    closed = true;
-    const closeError = reason ?? new Error("Connection closed");
-    for (const [, pending] of pendingCalls) {
+  close(): void {
+    if (this.closed) return;
+    this.closed = true;
+    const closeError = new Error("Session closed");
+    for (const [, pending] of this.pendingCalls) {
       pending.reject(closeError);
     }
-    pendingCalls.clear();
-  });
+    this.pendingCalls.clear();
+    this.transport.close();
+  }
+}
 
-  // --- Outgoing call proxy ---
-  const remote = new Proxy({} as TRemote, {
-    get(_target, prop) {
-      if (typeof prop === "symbol") return undefined;
-      if (RESERVED_PROPS.has(prop as string)) return undefined;
+// Public interface that wraps RpcSessionImpl and hides implementation details
+// (even from JavaScript with no type enforcement).
+export class RpcSession<TRemote extends object, TLocal extends object> {
+  #impl: RpcSessionImpl<TRemote, TLocal>;
 
-      return (...args: Array<unknown>) => {
-        if (closed) {
-          return Promise.reject(new Error("Session is closed"));
-        }
+  constructor(transport: RpcTransport, service: TLocal, options?: RpcSessionOptions) {
+    this.#impl = new RpcSessionImpl(transport, service, options);
+  }
 
-        const id = nextId;
-        nextId += idStep;
-        const req = createRequest(prop as string, args, () => id);
+  get remote(): PromisifyMethods<TRemote> {
+    return this.#impl.remote;
+  }
 
-        return new Promise((resolve, reject) => {
-          pendingCalls.set(id, { resolve, reject });
-          try {
-            transport.send(JSON.stringify(req));
-          } catch (err) {
-            pendingCalls.delete(id);
-            reject(err);
-          }
-        });
-      };
-    },
-  });
-
-  return {
-    remote: remote as RpcSession<TRemote, TLocal>["remote"],
-    close() {
-      if (closed) return;
-      closed = true;
-      const closeError = new Error("Session closed");
-      for (const [, pending] of pendingCalls) {
-        pending.reject(closeError);
-      }
-      pendingCalls.clear();
-      transport.close();
-    },
-  };
+  close(): void {
+    this.#impl.close();
+  }
 }

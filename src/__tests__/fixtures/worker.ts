@@ -1,6 +1,6 @@
 // Test worker for Workers runtime tests
 import { newWorkersRpcResponse } from "../../index.js";
-import { rpcSession } from "../../session.js";
+import { RpcSession } from "../../session.js";
 import { createWebSocketTransport } from "../../websocket.js";
 
 // Test service shared between HTTP and WebSocket transports
@@ -39,7 +39,7 @@ export default {
         },
       };
 
-      const session = rpcSession(transport, biService, { role: "acceptor" });
+      const session = new RpcSession(transport, biService, { role: "acceptor" });
 
       return new Response(null, { status: 101, webSocket: client });
     }
