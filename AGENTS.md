@@ -1,6 +1,6 @@
 # @jmorrell/jsonrpc
 
-Last verified: 2026-02-14
+Last verified: 2026-02-15
 
 ## Tech Stack
 
@@ -27,6 +27,7 @@ Last verified: 2026-02-14
 - `src/core.ts` - Shared types, error classes, and transport-agnostic JSON-RPC 2.0 engine (wire format types, type guards, request/response builders, RpcProtocolError, RPC processor)
 - `src/http-batch.ts` - HTTP batch transport: newHttpBatchRpcResponse (server) + newHttpBatchRpcSession (client with auto-batching)
 - `src/session.ts` - Bidirectional RPC over message transports (defines session-specific types: RpcMessageTransport, RpcSessionOptions, RpcSession)
+- `src/websocket.ts` - WebSocket transport: newWorkersWebSocketRpcResponse (server) + newWebSocketRpcSession (client with Disposable proxy)
 - `src/__tests__/` - Test files
 - `docs/` - Design documents and implementation plans
 
@@ -34,7 +35,7 @@ Last verified: 2026-02-14
 
 Single public entry point via index.ts:
 
-- `@jmorrell/jsonrpc` - newHttpBatchRpcResponse, newHttpBatchRpcSession, RpcError, RpcProtocolError
+- `@jmorrell/jsonrpc` - newHttpBatchRpcResponse, newHttpBatchRpcSession, newWorkersWebSocketRpcResponse, newWebSocketRpcSession, newWorkersRpcResponse, RpcError, RpcProtocolError
 
 ## Conventions
 
@@ -49,5 +50,6 @@ Single public entry point via index.ts:
 - core.ts: no internal imports (leaf module, defines all shared types and logic)
 - http-batch.ts: imports from core.ts
 - session.ts: imports from core.ts
-- index.ts: re-exports from http-batch.ts and core.ts
-- No cross-imports between http-batch and session
+- websocket.ts: imports from core.ts and session.ts
+- index.ts: re-exports from http-batch.ts, websocket.ts, and core.ts
+- No cross-imports between http-batch, session, and websocket
