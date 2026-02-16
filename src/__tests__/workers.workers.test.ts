@@ -1,28 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { newWorkersRpcResponse } from "../index.js";
-
-// Test service - same as in worker.ts
-const service = {
-  add(a: number, b: number): number {
-    return a + b;
-  },
-  greet(name: string): string {
-    return `Hello, ${name}!`;
-  },
-  echo(...args: unknown[]): unknown[] {
-    return args;
-  },
-};
-
-// Mock worker handler that delegates to newWorkersRpcResponse
-const workerFetch = async (request: Request): Promise<Response> => {
-  return newWorkersRpcResponse(request, service);
-};
+import { SELF } from "cloudflare:test";
+import { newHttpBatchRpcSession } from "../index.js";
 
 describe("Workers runtime integration tests (Task 5)", () => {
   describe("AC7.1: HTTP batch functionality in Workers", () => {
     it("should handle single HTTP batch request round-trip", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -33,7 +16,6 @@ describe("Workers runtime integration tests (Task 5)", () => {
         }),
       });
 
-      const response = await workerFetch(request);
       expect(response.status).toBe(200);
       expect(response.headers.get("Content-Type")).toBe("application/json");
 
@@ -46,7 +28,7 @@ describe("Workers runtime integration tests (Task 5)", () => {
     });
 
     it("should handle batch auto-batching with multiple requests", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify([
@@ -56,7 +38,6 @@ describe("Workers runtime integration tests (Task 5)", () => {
         ]),
       });
 
-      const response = await workerFetch(request);
       expect(response.status).toBe(200);
 
       const data = await response.json();
@@ -72,7 +53,7 @@ describe("Workers runtime integration tests (Task 5)", () => {
     });
 
     it("should propagate error for unknown method", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -83,7 +64,6 @@ describe("Workers runtime integration tests (Task 5)", () => {
         }),
       });
 
-      const response = await workerFetch(request);
       expect(response.status).toBe(200);
 
       const data = await response.json();
@@ -92,7 +72,7 @@ describe("Workers runtime integration tests (Task 5)", () => {
     });
 
     it("should include CORS header on POST response", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -103,52 +83,47 @@ describe("Workers runtime integration tests (Task 5)", () => {
         }),
       });
 
-      const response = await workerFetch(request);
       expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
     });
 
     it("should return 400 for GET request (non-POST)", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "GET",
       });
 
-      const response = await workerFetch(request);
       expect(response.status).toBe(400);
     });
 
     it("should not return 405 for non-POST (dispatcher returns 400)", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "DELETE",
       });
 
-      const response = await workerFetch(request);
       expect(response.status).toBe(400);
-      expect(response.status).not.toBe(405);
+      // Note: dispatcher returns 400, not 405 (405 comes from newHttpBatchRpcResponse directly)
     });
   });
 
   describe("AC7.2: WebSocket functionality in Workers", () => {
     it("should upgrade WebSocket connection with 101 response", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "GET",
         headers: {
           Upgrade: "websocket",
         },
       });
 
-      const response = await workerFetch(request);
       expect(response.status).toBe(101);
     });
 
     it("should handle WebSocket RPC round-trip", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "GET",
         headers: {
           Upgrade: "websocket",
         },
       });
 
-      const response = await workerFetch(request);
       expect(response.status).toBe(101);
 
       // Get the client WebSocket from response
@@ -202,14 +177,13 @@ describe("Workers runtime integration tests (Task 5)", () => {
     });
 
     it("should support bidirectional communication over WebSocket", async () => {
-      const request = new Request("http://localhost/rpc", {
+      const response = await SELF.fetch("http://localhost/rpc", {
         method: "GET",
         headers: {
           Upgrade: "websocket",
         },
       });
 
-      const response = await workerFetch(request);
       const ws = response.webSocket;
 
       if (!ws) {
@@ -287,28 +261,25 @@ describe("Workers runtime integration tests (Task 5)", () => {
     });
   });
 
-  describe("AC7.1: Symbol.dispose on HTTP batch session", () => {
-    it("should have Symbol.dispose as a function on proxy", async () => {
-      const request = new Request("http://localhost/rpc", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "add",
-          params: [1, 1],
-        }),
+  describe("Symbol.dispose in Workers runtime", () => {
+    it("should have Symbol.dispose as a function on HTTP batch proxy", async () => {
+      const session = newHttpBatchRpcSession({
+        url: "http://localhost:8000",
+        transport: async (body: string) => {
+          const response = await SELF.fetch("http://localhost/rpc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+          return response.text();
+        },
       });
 
-      // This test verifies that the HTTP batch session created within
-      // the Workers dispatcher has Symbol.dispose available.
-      // We indirectly verify this by checking the response is correct,
-      // which means the session was properly created and disposed.
-      const response = await workerFetch(request);
-      expect(response.status).toBe(200);
+      // Verify Symbol.dispose is a function on the proxy
+      expect(typeof session[Symbol.dispose]).toBe("function");
 
-      const data = await response.json();
-      expect(data.result).toBe(2);
+      // Clean up
+      session[Symbol.dispose]();
     });
   });
 });
