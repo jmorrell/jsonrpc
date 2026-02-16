@@ -1,15 +1,15 @@
-import type { RpcMessageTransport } from "./session.js";
+import type { RpcTransport } from "./session.js";
 import type { RpcHandlerOptions, PromisifyMethods } from "./core.js";
 import { rpcSession } from "./session.js";
 import { RESERVED_PROPS } from "./core.js";
 
 /**
- * Adapt a WebSocket to the RpcMessageTransport interface.
+ * Adapt a WebSocket to the RpcTransport interface.
  * Handles message queuing while the socket is still connecting.
  *
  * @internal
  */
-export function createWebSocketTransport(ws: WebSocket): RpcMessageTransport {
+export function createWebSocketTransport(ws: WebSocket): RpcTransport {
   let messageQueue: Array<string> | null = ws.readyState === WebSocket.CONNECTING ? [] : null;
 
   if (messageQueue) {

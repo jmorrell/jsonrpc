@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { rpcSession, RpcError, RpcProtocolError } from "../session.js";
 import { createLinkedTransports } from "./test-helpers.js";
-import type { RpcMessageTransport } from "../session.js";
+import type { RpcTransport } from "../session.js";
 
 describe("Initiator calls method on acceptor", () => {
   it("initiator calls method and gets result", async () => {
@@ -939,7 +939,7 @@ describe("session error resilience", () => {
       let messageHandlerA: ((message: string) => void) | null = null;
       let closeHandlerA: ((reason?: Error) => void) | null = null;
 
-      const transportA: RpcMessageTransport = {
+      const transportA: RpcTransport = {
         send(message: string) {
           sendCount++;
           if (sendCount === 1) {
@@ -962,7 +962,7 @@ describe("session error resilience", () => {
       let messageHandlerB: ((message: string) => void) | null = null;
       let closeHandlerB: ((reason?: Error) => void) | null = null;
 
-      const transportB: RpcMessageTransport = {
+      const transportB: RpcTransport = {
         send(message: string) {
           messageHandlerA?.(message);
         },

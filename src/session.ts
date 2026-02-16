@@ -13,7 +13,7 @@ export { RpcError, RpcProtocolError } from "./core.js";
 export type { RpcProtocolErrorCode } from "./core.js";
 
 // Message-oriented transport for bidirectional connections
-export type RpcMessageTransport = {
+export type RpcTransport = {
   send(message: string): void;
   onMessage(handler: (message: string) => void): void;
   onClose(handler: (reason?: Error) => void): void;
@@ -36,7 +36,7 @@ type PendingCall = {
 };
 
 export function rpcSession<TRemote extends object, TLocal extends object>(
-  transport: RpcMessageTransport,
+  transport: RpcTransport,
   service: TLocal,
   options?: RpcSessionOptions,
 ): RpcSession<TRemote, TLocal> {

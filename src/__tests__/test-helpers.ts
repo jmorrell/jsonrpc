@@ -1,13 +1,13 @@
-import type { RpcMessageTransport } from "../session.js";
+import type { RpcTransport } from "../session.js";
 
-export function createLinkedTransports(): [RpcMessageTransport, RpcMessageTransport] {
+export function createLinkedTransports(): [RpcTransport, RpcTransport] {
   let messageHandlerA: ((message: string) => void) | null = null;
   let messageHandlerB: ((message: string) => void) | null = null;
   let closeHandlerA: ((reason?: Error) => void) | null = null;
   let closeHandlerB: ((reason?: Error) => void) | null = null;
   let closed = false;
 
-  const transportA: RpcMessageTransport = {
+  const transportA: RpcTransport = {
     send(message: string) {
       if (closed) throw new Error("Transport is closed");
       messageHandlerB?.(message);
@@ -27,7 +27,7 @@ export function createLinkedTransports(): [RpcMessageTransport, RpcMessageTransp
     },
   };
 
-  const transportB: RpcMessageTransport = {
+  const transportB: RpcTransport = {
     send(message: string) {
       if (closed) throw new Error("Transport is closed");
       messageHandlerA?.(message);
