@@ -1,5 +1,5 @@
-// src/worker.ts — Test worker for Workers runtime tests
-import { newWorkersRpcResponse } from "./index.js";
+// Test worker for Workers runtime tests
+import { newWorkersRpcResponse } from "../../index.js";
 
 // Test service shared between HTTP and WebSocket transports
 const service = {

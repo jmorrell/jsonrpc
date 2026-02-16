@@ -21,7 +21,7 @@ export default defineConfig({
           pool: "@cloudflare/vitest-pool-workers",
           poolOptions: {
             workers: {
-              main: "src/worker.ts",
+              main: "src/__tests__/fixtures/worker.ts",
             },
           },
         },

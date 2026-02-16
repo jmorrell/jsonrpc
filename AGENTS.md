@@ -30,8 +30,8 @@ Last verified: 2026-02-15
 - `src/http-batch.ts` - HTTP batch transport: newHttpBatchRpcResponse (server) + newHttpBatchRpcSession (client with auto-batching)
 - `src/session.ts` - Bidirectional RPC over message transports (defines session-specific types: RpcMessageTransport, RpcSessionOptions, RpcSession)
 - `src/websocket.ts` - WebSocket transport: newWorkersWebSocketRpcResponse (server) + newWebSocketRpcSession (client with Disposable proxy)
-- `src/worker.ts` - Test worker entry point for Workers runtime tests
 - `src/__tests__/` - Test files
+- `src/__tests__/fixtures/worker.ts` - Test worker entry point for Workers runtime tests
 - `docs/` - Design documents and implementation plans
 - `wrangler.toml` - Minimal Workers config for test worker
 
