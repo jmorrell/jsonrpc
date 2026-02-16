@@ -27,8 +27,8 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
     }
   });
 
-  describe("Task 6: newWorkersRpcResponse implementation", () => {
-    describe("AC6.1: POST request with CORS header", () => {
+  describe("newWorkersRpcResponse implementation", () => {
+    describe("POST request with CORS header", () => {
       it("should delegate POST to newHttpBatchRpcResponse", async () => {
         const req = new Request("http://localhost/rpc", {
           method: "POST",
@@ -116,7 +116,7 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
       });
     });
 
-    describe("AC6.2: WebSocket upgrade request", () => {
+    describe("WebSocket upgrade request", () => {
       it("should route Upgrade: websocket requests to newWorkersWebSocketRpcResponse", async () => {
         // AC6.2: The dispatcher checks for Upgrade header and delegates to newWorkersWebSocketRpcResponse
         // This test verifies the routing logic attempts to create a WebSocketPair.
@@ -126,7 +126,9 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
 
         // Replace MockWebSocketPair with a tracked version
         const OriginalMockWebSocketPair = (globalThis as any).WebSocketPair;
-        (globalThis as any).WebSocketPair = class extends OriginalMockWebSocketPair {
+        (globalThis as any).WebSocketPair = class extends (
+          OriginalMockWebSocketPair
+        ) {
           constructor() {
             super();
             webSocketPairWasInstantiated = true;
@@ -167,7 +169,7 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
       });
     });
 
-    describe("AC6.3: Other request types return 400", () => {
+    describe("Other request types return 400", () => {
       it("should return 400 for GET request", async () => {
         const req = new Request("http://localhost/rpc", { method: "GET" });
 
@@ -217,7 +219,11 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
 
         expect(res.status).toBe(200);
         const json = await res.json();
-        expect(json).toEqual({ jsonrpc: "2.0", id: 1, result: "Hello, World!" });
+        expect(json).toEqual({
+          jsonrpc: "2.0",
+          id: 1,
+          result: "Hello, World!",
+        });
       });
     });
 

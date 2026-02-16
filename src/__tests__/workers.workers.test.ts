@@ -10,7 +10,7 @@ import {
   RpcProtocolError,
 } from "../index.js";
 
-describe("AC1.1: All 7 exports resolve from entry point", () => {
+describe("All 7 exports resolve from entry point", () => {
   it("should export all 7 required symbols with correct types", () => {
     // newHttpBatchRpcResponse (function)
     expect(typeof newHttpBatchRpcResponse).toBe("function");
@@ -49,7 +49,7 @@ describe("AC1.1: All 7 exports resolve from entry point", () => {
 });
 
 describe("Workers runtime integration tests (Task 5)", () => {
-  describe("AC7.1: HTTP batch functionality in Workers", () => {
+  describe("HTTP batch functionality in Workers", () => {
     it("should handle single HTTP batch request round-trip", async () => {
       const response = await SELF.fetch("http://localhost/rpc", {
         method: "POST",
@@ -150,7 +150,7 @@ describe("Workers runtime integration tests (Task 5)", () => {
     });
   });
 
-  describe("AC7.2: WebSocket functionality in Workers", () => {
+  describe("WebSocket functionality in Workers", () => {
     it("should upgrade WebSocket connection with 101 response", async () => {
       const response = await SELF.fetch("http://localhost/rpc", {
         method: "GET",
@@ -194,7 +194,10 @@ describe("Workers runtime integration tests (Task 5)", () => {
 
       // Listen for response with timeout
       const responsePromise = new Promise<string>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("WebSocket response timeout")), 5000);
+        const timeout = setTimeout(
+          () => reject(new Error("WebSocket response timeout")),
+          5000,
+        );
 
         const messageHandler = (event: Event) => {
           if (event instanceof MessageEvent) {
@@ -258,7 +261,10 @@ describe("Workers runtime integration tests (Task 5)", () => {
       // Collect both responses
       const responses: string[] = [];
       const collectResponses = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("WebSocket collection timeout")), 5000);
+        const timeout = setTimeout(
+          () => reject(new Error("WebSocket collection timeout")),
+          5000,
+        );
 
         let receivedCount = 0;
 
