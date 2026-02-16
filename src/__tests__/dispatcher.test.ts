@@ -150,10 +150,7 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
             // In Node.js, Response status 101 throws RangeError
             // But the important thing is that WebSocketPair was attempted to be instantiated,
             // which means routing worked correctly
-            if (
-              err instanceof RangeError &&
-              err.message.includes("status")
-            ) {
+            if (err instanceof RangeError && err.message.includes("status")) {
               // This is expected in Node.js - the routing worked but Response(101) is not allowed
             } else {
               // Some other error - re-throw if it's not what we expect
