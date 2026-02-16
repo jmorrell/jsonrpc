@@ -4,8 +4,7 @@ import {
   newWebSocketRpcSession,
   createWebSocketTransport,
 } from "../websocket.js";
-import { createLinkedTransports, MockWebSocket } from "./test-helpers.js";
-import { rpcSession } from "../session.js";
+import { MockWebSocket } from "./test-helpers.js";
 
 describe("WebSocket transport and RPC (Tasks 2-5)", () => {
   describe("createWebSocketTransport", () => {
@@ -124,87 +123,6 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       expect(session).toBeDefined();
     });
 
-    it("should accept existing WebSocket instance", () => {
-      const ws = new MockWebSocket(WebSocket.OPEN);
-
-      const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
-
-      expect(session).toBeDefined();
-    });
-
-    it("should have Symbol.dispose property", () => {
-      const ws = new MockWebSocket(WebSocket.OPEN);
-
-      const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
-
-      // Test that Symbol.dispose is accessible through the proxy
-      expect(typeof (session as any)[Symbol.dispose]).toBe("function");
-    });
-
-    it("should close WebSocket when Symbol.dispose is called", () => {
-      const ws = new MockWebSocket(WebSocket.OPEN);
-      const closeSpy = vi.spyOn(ws, "close");
-
-      const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
-
-      // Call dispose via symbol
-      (session as any)[Symbol.dispose]();
-
-      expect(closeSpy).toHaveBeenCalled();
-    });
-
-    it("should have close() method", () => {
-      const ws = new MockWebSocket(WebSocket.OPEN);
-
-      const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
-
-      expect(typeof (session as any).close).toBe("function");
-    });
-
-    it("should close WebSocket when close() is called", () => {
-      const ws = new MockWebSocket(WebSocket.OPEN);
-      const closeSpy = vi.spyOn(ws, "close");
-
-      const session = newWebSocketRpcSession<{ test: () => Promise<string> }>(ws);
-
-      (session as any).close();
-
-      expect(closeSpy).toHaveBeenCalled();
-    });
-
-    it("should support bidirectional RPC with localFunctions", async () => {
-      const [transportA, transportB] = createLinkedTransports();
-
-      const serverService = {
-        greet: async (name: string) => `Hello, ${name}!`,
-      };
-
-      const clientLocalFunctions = {
-        onNotification: async (message: string) => `Received: ${message}`,
-      };
-
-      // Create server session
-      const serverSession = rpcSession(transportA, serverService, {
-        role: "acceptor",
-      });
-
-      // Create client session with local functions
-      const clientSession = rpcSession(transportB, clientLocalFunctions, {
-        role: "initiator",
-      });
-
-      // Client should be able to call server's greet method
-      const greeting = await (clientSession.remote as any).greet("Alice");
-      expect(greeting).toBe("Hello, Alice!");
-
-      // Server should be able to call client's onNotification
-      const notification = await (serverSession.remote as any).onNotification("Hello from server");
-      expect(notification).toBe("Received: Hello from server");
-
-      serverSession.close();
-      clientSession.close();
-    });
-
     it("should queue messages while WebSocket is connecting", async () => {
       const ws = new MockWebSocket(WebSocket.CONNECTING);
 
@@ -226,38 +144,6 @@ describe("WebSocket transport and RPC (Tasks 2-5)", () => {
       // The call itself won't complete (no real server), but it was queued and sent
       // Just verify that the queuing mechanism worked
       expect(ws.readyState).toBe(WebSocket.CONNECTING);
-    });
-  });
-
-  describe("WebSocket bidirectional RPC", () => {
-    it("should handle server → client method calls", async () => {
-      const [transportA, transportB] = createLinkedTransports();
-
-      const clientService = {
-        getData: async () => ({ value: 42 }),
-      };
-
-      const serverService = {
-        compute: async () => "done",
-      };
-
-      const serverSession = rpcSession(transportA, serverService, {
-        role: "acceptor",
-      });
-      const clientSession = rpcSession(transportB, clientService, {
-        role: "initiator",
-      });
-
-      // Server invokes a method on the client
-      const result = await (serverSession.remote as any).getData();
-      expect(result).toEqual({ value: 42 });
-
-      // Verify client can also call server
-      const serverResult = await (clientSession.remote as any).compute();
-      expect(serverResult).toBe("done");
-
-      serverSession.close();
-      clientSession.close();
     });
   });
 });

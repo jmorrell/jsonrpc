@@ -249,6 +249,53 @@ describe("Workers runtime integration tests", () => {
     });
   });
 
+  describe("WebSocket session lifecycle", () => {
+    function createWebSocketSession<T extends object>() {
+      return SELF.fetch("http://localhost/rpc", {
+        method: "GET",
+        headers: { Upgrade: "websocket" },
+      }).then((response) => {
+        const ws = response.webSocket;
+        if (!ws) throw new Error("WebSocket not available");
+        ws.accept();
+        return newWebSocketRpcSession<T>(ws);
+      });
+    }
+
+    it("should have Symbol.dispose property", async () => {
+      const session = await createWebSocketSession<{ add(a: number, b: number): number }>();
+      expect(typeof session[Symbol.dispose]).toBe("function");
+      session.close();
+    });
+
+    it("should close session via Symbol.dispose", async () => {
+      const session = await createWebSocketSession<{ add(a: number, b: number): number }>();
+
+      // Verify session works
+      const result = await session.add(1, 2);
+      expect(result).toBe(3);
+
+      // Dispose
+      session[Symbol.dispose]();
+
+      // Session should be closed
+      await expect(session.add(1, 2)).rejects.toThrow();
+    });
+
+    it("should close session via close()", async () => {
+      const session = await createWebSocketSession<{ add(a: number, b: number): number }>();
+
+      // Verify session works
+      const result = await session.add(1, 2);
+      expect(result).toBe(3);
+
+      session.close();
+
+      // Session should be closed
+      await expect(session.add(1, 2)).rejects.toThrow();
+    });
+  });
+
   describe("Symbol.dispose in Workers runtime", () => {
     it("should have Symbol.dispose as a function on HTTP batch proxy", async () => {
       const session = newHttpBatchRpcSession({
