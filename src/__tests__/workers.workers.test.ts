@@ -1,6 +1,52 @@
 import { describe, it, expect } from "vitest";
 import { SELF } from "cloudflare:test";
-import { newHttpBatchRpcSession } from "../index.js";
+import {
+  newHttpBatchRpcResponse,
+  newHttpBatchRpcSession,
+  newWorkersWebSocketRpcResponse,
+  newWebSocketRpcSession,
+  newWorkersRpcResponse,
+  RpcError,
+  RpcProtocolError,
+} from "../index.js";
+
+describe("AC1.1: All 7 exports resolve from entry point", () => {
+  it("should export all 7 required symbols with correct types", () => {
+    // newHttpBatchRpcResponse (function)
+    expect(typeof newHttpBatchRpcResponse).toBe("function");
+
+    // newHttpBatchRpcSession (function)
+    expect(typeof newHttpBatchRpcSession).toBe("function");
+
+    // newWorkersWebSocketRpcResponse (function)
+    expect(typeof newWorkersWebSocketRpcResponse).toBe("function");
+
+    // newWebSocketRpcSession (function)
+    expect(typeof newWebSocketRpcSession).toBe("function");
+
+    // newWorkersRpcResponse (function)
+    expect(typeof newWorkersRpcResponse).toBe("function");
+
+    // RpcError (class/constructor)
+    expect(typeof RpcError).toBe("function");
+
+    // RpcProtocolError (class/constructor)
+    expect(typeof RpcProtocolError).toBe("function");
+  });
+
+  it("should instantiate RpcError with message", () => {
+    const error = new RpcError("test error");
+    expect(error).toBeInstanceOf(RpcError);
+    expect(error.message).toBe("test error");
+  });
+
+  it("should instantiate RpcProtocolError with message", () => {
+    const error = new RpcProtocolError(-32700, "protocol error");
+    expect(error).toBeInstanceOf(RpcProtocolError);
+    expect(error.message).toBe("protocol error");
+    expect(error.code).toBe(-32700);
+  });
+});
 
 describe("Workers runtime integration tests (Task 5)", () => {
   describe("AC7.1: HTTP batch functionality in Workers", () => {

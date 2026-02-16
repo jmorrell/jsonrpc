@@ -119,24 +119,53 @@ describe("newWorkersRpcResponse convenience dispatcher (Tasks 6-7)", () => {
     describe("AC6.2: WebSocket upgrade request", () => {
       it("should route Upgrade: websocket requests to newWorkersWebSocketRpcResponse", async () => {
         // AC6.2: The dispatcher checks for Upgrade header and delegates to newWorkersWebSocketRpcResponse
-        // Full WebSocket upgrade testing (AC6.2 with 101 status) is deferred to Phase 4 Workers runtime tests
-        // because Node's Response API doesn't support status 101 and WebSocketPair is Workers-only.
-        // This test verifies the routing logic works (attempts to create WebSocketPair).
-        const req = new Request("http://localhost/rpc", {
-          method: "GET",
-          headers: {
-            Upgrade: "websocket",
-          },
-        });
+        // This test verifies the routing logic attempts to create a WebSocketPair.
+        // When MockWebSocketPair is set up in beforeEach, we can verify the attempt reaches the WebSocket path.
 
-        // In non-Workers environment, this will either throw (WebSocketPair undefined) or fail
-        // because Response status 101 is invalid in Node.js
+        let webSocketPairWasInstantiated = false;
+
+        // Replace MockWebSocketPair with a tracked version
+        const OriginalMockWebSocketPair = (globalThis as any).WebSocketPair;
+        (globalThis as any).WebSocketPair = class extends OriginalMockWebSocketPair {
+          constructor() {
+            super();
+            webSocketPairWasInstantiated = true;
+          }
+        };
+
         try {
-          await newWorkersRpcResponse(req, service);
-          // If we get here without error, that's fine - some environments may allow it
-        } catch {
-          // Expected in Node.js: either ReferenceError (WebSocketPair undefined) or
-          // RangeError (status 101 not allowed). Both indicate correct routing.
+          const req = new Request("http://localhost/rpc", {
+            method: "GET",
+            headers: {
+              Upgrade: "websocket",
+            },
+          });
+
+          // Call the dispatcher with WebSocket upgrade request
+          try {
+            await newWorkersRpcResponse(req, service);
+            // If we get here without error, the status 101 Response was created successfully
+            // (e.g., in a Workers environment)
+          } catch (err) {
+            // In Node.js, Response status 101 throws RangeError
+            // But the important thing is that WebSocketPair was attempted to be instantiated,
+            // which means routing worked correctly
+            if (
+              err instanceof RangeError &&
+              err.message.includes("status")
+            ) {
+              // This is expected in Node.js - the routing worked but Response(101) is not allowed
+            } else {
+              // Some other error - re-throw if it's not what we expect
+              throw err;
+            }
+          }
+
+          // Verify that WebSocketPair was instantiated, proving the dispatcher routed correctly
+          expect(webSocketPairWasInstantiated).toBe(true);
+        } finally {
+          // Restore original
+          (globalThis as any).WebSocketPair = OriginalMockWebSocketPair;
         }
       });
     });
