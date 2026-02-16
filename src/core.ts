@@ -33,6 +33,9 @@ export type PromisifyMethods<T extends object> = {
   [K in keyof T]: Promisify<T[K]>;
 };
 
+// Proxy handler reserved properties that should not be proxied to remote calls
+export const RESERVED_PROPS = new Set(["then", "toJSON"]);
+
 // Protocol error codes for onError callbacks
 export type RpcProtocolErrorCode =
   | "PARSE_ERROR" // malformed JSON on transport

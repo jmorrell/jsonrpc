@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { processRpc, handleRpc } from "../server.js";
+import { processRpc } from "../core.js";
+import { newHttpBatchRpcResponse } from "../http-batch.js";
 
 // Service for spec compliance tests
 const service = {
@@ -27,12 +28,12 @@ const service = {
 };
 
 describe("spec compliance: error codes", () => {
-  it("-32700 Parse error (via handleRpc)", async () => {
+  it("-32700 Parse error (via newHttpBatchRpcResponse)", async () => {
     const req = new Request("http://localhost/rpc", {
       method: "POST",
       body: '{"jsonrpc": "2.0", "method": "foobar, "id": "1"}',
     });
-    const res = await handleRpc(req, service);
+    const res = await newHttpBatchRpcResponse(req, service);
     const json = await res.json();
     expect(json.error.code).toBe(-32700);
     expect(json.error.message).toBe("Parse error");

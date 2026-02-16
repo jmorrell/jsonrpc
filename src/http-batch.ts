@@ -1,7 +1,59 @@
-import type { JsonRpcRequest, JsonRpcResponse, PromisifyMethods } from "./core.js";
-import { isJsonRpcResponse, RpcError, createRequest } from "./core.js";
+import type {
+  JsonRpcRequest,
+  JsonRpcResponse,
+  PromisifyMethods,
+  RpcHandlerOptions,
+} from "./core.js";
+import {
+  isJsonRpcResponse,
+  RpcError,
+  createRequest,
+  errorResponse,
+  processRpc,
+  RESERVED_PROPS,
+} from "./core.js";
 
-export { isJsonRpcResponse, RpcError, createRequest } from "./core.js";
+// --- Server: HTTP batch handler ---
+
+/**
+ * HTTP wrapper around processRpc. Takes a Request, returns a Response.
+ */
+export async function newHttpBatchRpcResponse<T>(
+  request: Request,
+  service: T,
+  options?: RpcHandlerOptions,
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return new Response(null, {
+      status: 405,
+      headers: { Allow: "POST" },
+    });
+  }
+
+  const text = await request.text();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return new Response(JSON.stringify(errorResponse(null, -32700, "Parse error")), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const result = await processRpc(parsed, service, options);
+
+  if (result === null) {
+    return new Response(null, { status: 204 });
+  }
+
+  return new Response(JSON.stringify(result), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+// --- Client: HTTP batch session ---
 
 // Client transport abstraction — takes serialized JSON body, returns serialized JSON response
 export type RpcTransport = (body: string) => Promise<string>;
@@ -17,9 +69,6 @@ export type RpcClientOptions =
       getHeaders?: never;
     })
   | (RpcFetchOptions & { transport?: never });
-
-// Client proxy type: promisified methods only
-export type RpcClient<T extends object> = PromisifyMethods<T>;
 
 /**
  * Create a fetch-based RpcTransport.
@@ -49,12 +98,12 @@ type PendingCall = {
   reject: (reason: unknown) => void;
 };
 
-const RESERVED_PROPS = new Set(["then", "toJSON"]);
-
 /**
- * Create a typed JSON-RPC 2.0 client with auto-batching.
+ * Create a typed JSON-RPC 2.0 client with auto-batching over HTTP.
  */
-export function rpcClient<T extends object>(options: RpcClientOptions): RpcClient<T> {
+export function newHttpBatchRpcSession<T extends object>(
+  options: RpcClientOptions,
+): PromisifyMethods<T> & Disposable {
   let transport: RpcTransport;
 
   if (typeof options === "string") {
@@ -78,7 +127,6 @@ export function rpcClient<T extends object>(options: RpcClientOptions): RpcClien
   }
 
   async function flush() {
-    // Grab the current batch
     const calls = pendingCalls;
     const requests = pendingRequests;
     pendingCalls = [];
@@ -92,11 +140,9 @@ export function rpcClient<T extends object>(options: RpcClientOptions): RpcClien
 
     try {
       const responseText = await transport(body);
-
       const parsed = JSON.parse(responseText);
 
       if (isSingleRequest) {
-        // Single request mode
         const call = calls[0];
         if (!isJsonRpcResponse(parsed)) {
           call.reject(new TypeError("Not a valid JSON-RPC 2.0 response"));
@@ -113,9 +159,7 @@ export function rpcClient<T extends object>(options: RpcClientOptions): RpcClien
           call.resolve(parsed.result);
         }
       } else {
-        // Batch mode
         if (isJsonRpcResponse(parsed) && "error" in parsed) {
-          // Server returned a single error for the whole batch
           const { code, message, data } = parsed.error;
           const err = new RpcError(message, code, data);
           for (const call of calls) {
@@ -132,7 +176,6 @@ export function rpcClient<T extends object>(options: RpcClientOptions): RpcClien
           return;
         }
 
-        // Build response map by id
         const responseMap = new Map<string | number, JsonRpcResponse>();
         for (const res of parsed) {
           if (isJsonRpcResponse(res)) {
@@ -140,7 +183,6 @@ export function rpcClient<T extends object>(options: RpcClientOptions): RpcClien
           }
         }
 
-        // Dispatch to pending calls
         for (const call of calls) {
           const res = responseMap.get(call.id);
           if (!res) {
@@ -156,18 +198,19 @@ export function rpcClient<T extends object>(options: RpcClientOptions): RpcClien
         }
       }
     } catch (err) {
-      // Transport error → reject everything
       for (const call of calls) {
         call.reject(err);
       }
     }
   }
 
-  // Main proxy
   return new Proxy(
     {},
     {
       get(_target, prop) {
+        if (prop === Symbol.dispose) {
+          return () => {};
+        }
         if (typeof prop === "symbol") return undefined;
         if (RESERVED_PROPS.has(prop as string)) return undefined;
         if (prop === "notify") return undefined;
@@ -183,5 +226,7 @@ export function rpcClient<T extends object>(options: RpcClientOptions): RpcClien
         };
       },
     },
-  ) as RpcClient<T>;
+  ) as PromisifyMethods<T> & Disposable;
 }
+
+export { RpcError } from "./core.js";

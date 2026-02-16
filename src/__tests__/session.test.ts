@@ -3,9 +3,7 @@ import { rpcSession, RpcError, RpcProtocolError } from "../session.js";
 import { createLinkedTransports } from "./test-helpers.js";
 import type { RpcMessageTransport } from "../session.js";
 
-// --- AC2.1: Initiator calls method on acceptor's service ---
-
-describe("AC2.1: Initiator calls method on acceptor", () => {
+describe("Initiator calls method on acceptor", () => {
   it("initiator calls method and gets result", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
@@ -18,7 +16,9 @@ describe("AC2.1: Initiator calls method on acceptor", () => {
 
     // Create sessions
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     // Initiator calls remote method
     const result = await (sessionA.remote as any).add(2, 3);
@@ -39,7 +39,9 @@ describe("AC2.1: Initiator calls method on acceptor", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     const result = await (sessionA.remote as any).greet("Alice");
 
@@ -50,9 +52,7 @@ describe("AC2.1: Initiator calls method on acceptor", () => {
   });
 });
 
-// --- AC2.2: Acceptor calls method on initiator's service ---
-
-describe("AC2.2: Acceptor calls method on initiator", () => {
+describe("Acceptor calls method on initiator", () => {
   it("acceptor calls method and gets result", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
@@ -63,7 +63,9 @@ describe("AC2.2: Acceptor calls method on initiator", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, initiatorService, { role: "initiator" });
+    const sessionA = rpcSession(transportA, initiatorService, {
+      role: "initiator",
+    });
     const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
 
     // Acceptor calls remote method
@@ -84,7 +86,9 @@ describe("AC2.2: Acceptor calls method on initiator", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, initiatorService, { role: "initiator" });
+    const sessionA = rpcSession(transportA, initiatorService, {
+      role: "initiator",
+    });
     const sessionB = rpcSession(transportB, {}, { role: "acceptor" });
 
     const result = await (sessionB.remote as any).toUpperCase("hello");
@@ -96,9 +100,7 @@ describe("AC2.2: Acceptor calls method on initiator", () => {
   });
 });
 
-// --- AC2.3: Simultaneous calls without ID collision ---
-
-describe("AC2.3: Simultaneous calls without ID collision", () => {
+describe("Simultaneous calls without ID collision", () => {
   it("initiator uses positive IDs, acceptor uses negative IDs", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
@@ -226,9 +228,7 @@ describe("AC2.3: Simultaneous calls without ID collision", () => {
   });
 });
 
-// --- AC2.4: Void-returning methods ---
-
-describe("AC2.4: Void-returning methods", () => {
+describe("Void-returning methods", () => {
   it("void method resolves to null", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
@@ -241,7 +241,9 @@ describe("AC2.4: Void-returning methods", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     const result = await (sessionA.remote as any).sideEffect();
 
@@ -262,7 +264,9 @@ describe("AC2.4: Void-returning methods", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     const result = await (sessionA.remote as any).doWork();
 
@@ -273,9 +277,7 @@ describe("AC2.4: Void-returning methods", () => {
   });
 });
 
-// --- AC2.5: Remote method that throws ---
-
-describe("AC2.5: Remote method that throws", () => {
+describe("Remote method that throws", () => {
   it("thrown error returns RpcError with code, message, data", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
@@ -289,7 +291,9 @@ describe("AC2.5: Remote method that throws", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     try {
       await (sessionA.remote as any).throwWithData();
@@ -315,7 +319,9 @@ describe("AC2.5: Remote method that throws", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     try {
       await (sessionA.remote as any).throwSimple();
@@ -339,7 +345,9 @@ describe("AC2.5: Remote method that throws", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     try {
       await (sessionA.remote as any).throwNoCode();
@@ -354,9 +362,7 @@ describe("AC2.5: Remote method that throws", () => {
   });
 });
 
-// --- AC2.6: Method that doesn't exist ---
-
-describe("AC2.6: Method not found", () => {
+describe("Method not found", () => {
   it("calling non-existent method rejects with -32601", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
@@ -367,7 +373,9 @@ describe("AC2.6: Method not found", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     try {
       await (sessionA.remote as any).nonExistentMethod();
@@ -402,9 +410,7 @@ describe("AC2.6: Method not found", () => {
   });
 });
 
-// --- AC2.7: Messages sent individually (no batching) ---
-
-describe("AC2.7: Messages sent individually", () => {
+describe("Messages sent individually", () => {
   it("each call sends exactly one message", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
@@ -417,7 +423,9 @@ describe("AC2.7: Messages sent individually", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     // Clear the spy to start fresh
     sendSpy.mockClear();
@@ -443,8 +451,12 @@ describe("AC2.7: Messages sent individually", () => {
       },
     };
 
-    const sessionA = rpcSession(transportA, initiatorService, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionA = rpcSession(transportA, initiatorService, {
+      role: "initiator",
+    });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     // Clear the spy to start fresh
     sendSpy.mockClear();
@@ -466,11 +478,8 @@ describe("AC2.7: Messages sent individually", () => {
   });
 });
 
-// --- AC3: Connection lifecycle ---
-
-describe("session lifecycle (AC3.1-AC3.4)", () => {
-  // AC3.1: Transport closes, pending calls reject with close reason
-  it("AC3.1: when transport closes, pending outgoing calls reject with close reason", async () => {
+describe("session lifecycle", () => {
+  it("when transport closes, pending outgoing calls reject with close reason", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
     const acceptorService = {
@@ -482,7 +491,9 @@ describe("session lifecycle (AC3.1-AC3.4)", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     // Start a call that will remain pending
     const callPromise = (sessionA.remote as any).slowMethod();
@@ -506,8 +517,7 @@ describe("session lifecycle (AC3.1-AC3.4)", () => {
     sessionB.close();
   });
 
-  // AC3.2: session.close() rejects pending calls and calls transport.close()
-  it("AC3.2: session.close() rejects pending calls and calls transport.close()", async () => {
+  it("session.close() rejects pending calls and calls transport.close()", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
     const acceptorService = {
@@ -519,7 +529,9 @@ describe("session lifecycle (AC3.1-AC3.4)", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     // Spy on transport.close()
     const transportCloseSpy = vi.spyOn(transportA, "close");
@@ -547,8 +559,7 @@ describe("session lifecycle (AC3.1-AC3.4)", () => {
     sessionB.close();
   });
 
-  // AC3.3: Calling session.remote.method() after close rejects immediately
-  it("AC3.3: calling session.remote.method() after close rejects immediately", async () => {
+  it("calling session.remote.method() after close rejects immediately", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
@@ -568,8 +579,7 @@ describe("session lifecycle (AC3.1-AC3.4)", () => {
     sessionB.close();
   });
 
-  // AC3.4: Transport closes during service method execution, response send failure is handled gracefully
-  it("AC3.4: transport close during async service method execution doesn't crash", async () => {
+  it("transport close during async service method execution doesn't crash", async () => {
     const [transportA, transportB] = createLinkedTransports();
 
     let methodStarted = false;
@@ -647,7 +657,9 @@ describe("session lifecycle (AC3.1-AC3.4)", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     // Start multiple pending calls
     const call1 = (sessionA.remote as any).slowMethod();
@@ -749,7 +761,9 @@ describe("Session behavior", () => {
     };
 
     const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-    const _sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const _sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     const callPromise = (sessionA.remote as any).slowMethod();
 
@@ -768,8 +782,7 @@ describe("Session behavior", () => {
 // --- Error resilience tests (AC4.1-AC4.5) ---
 
 describe("session error resilience", () => {
-  // AC4.1: Malformed JSON
-  describe("AC4.1: Malformed JSON", () => {
+  describe("Malformed JSON", () => {
     it("malformed JSON is logged via onError and session continues", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
@@ -791,7 +804,9 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+      const sessionB = rpcSession(transportB, acceptorService, {
+        role: "acceptor",
+      });
 
       // Inject malformed JSON
       const malformedJSON = "not json{";
@@ -815,8 +830,7 @@ describe("session error resilience", () => {
     });
   });
 
-  // AC4.2: Unknown response ID
-  describe("AC4.2: Unknown response ID", () => {
+  describe("Unknown response ID", () => {
     it("response with unknown ID is logged via onError and session continues", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
@@ -838,7 +852,9 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+      const sessionB = rpcSession(transportB, acceptorService, {
+        role: "acceptor",
+      });
 
       // Inject a response with unknown ID
       const unknownResponseJSON = JSON.stringify({
@@ -866,8 +882,7 @@ describe("session error resilience", () => {
     });
   });
 
-  // AC4.3: Unroutable message
-  describe("AC4.3: Unroutable message", () => {
+  describe("Unroutable message", () => {
     it("message that is neither request nor response is logged via onError and session continues", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
@@ -889,7 +904,9 @@ describe("session error resilience", () => {
         },
       };
 
-      const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+      const sessionB = rpcSession(transportB, acceptorService, {
+        role: "acceptor",
+      });
 
       // Inject a message that is neither request nor response
       const unroutableJSON = JSON.stringify({
@@ -915,8 +932,7 @@ describe("session error resilience", () => {
     });
   });
 
-  // AC4.4: Send failure
-  describe("AC4.4: Send failure", () => {
+  describe("Send failure", () => {
     it("transport.send() throwing rejects only that specific call, not the whole session", async () => {
       // Create a custom transport that fails on the first call only
       let sendCount = 0;
@@ -968,7 +984,9 @@ describe("session error resilience", () => {
       };
 
       const sessionA = rpcSession(transportA, {}, { role: "initiator" });
-      const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+      const sessionB = rpcSession(transportB, acceptorService, {
+        role: "acceptor",
+      });
 
       // First call should fail because send() throws
       try {
@@ -991,8 +1009,7 @@ describe("session error resilience", () => {
     });
   });
 
-  // AC4.5: Incoming notification
-  describe("AC4.5: Incoming notification", () => {
+  describe("Incoming notification", () => {
     it("incoming notification is not executed and is logged via onError", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
@@ -1051,8 +1068,7 @@ describe("session error resilience", () => {
     });
   });
 
-  // AC4.6: Invalid message (non-object)
-  describe("AC4.6: Non-object message", () => {
+  describe("Non-object message", () => {
     it("non-object JSON is logged via onError with INVALID_MESSAGE code", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
@@ -1092,8 +1108,7 @@ describe("session error resilience", () => {
     });
   });
 
-  // AC4.7: Invalid response shape
-  describe("AC4.7: Invalid response", () => {
+  describe("Invalid response", () => {
     it("response that fails type guard is logged with INVALID_RESPONSE code", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
@@ -1134,8 +1149,7 @@ describe("session error resilience", () => {
     });
   });
 
-  // AC4.8: Null response ID
-  describe("AC4.8: Null response ID", () => {
+  describe("Null response ID", () => {
     it("response with null ID is logged with NULL_RESPONSE_ID code", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
@@ -1199,7 +1213,9 @@ describe("session error resilience", () => {
       },
     };
 
-    const sessionB = rpcSession(transportB, acceptorService, { role: "acceptor" });
+    const sessionB = rpcSession(transportB, acceptorService, {
+      role: "acceptor",
+    });
 
     // Inject multiple errors
     // 1. Malformed JSON

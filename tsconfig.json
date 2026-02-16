@@ -9,7 +9,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "lib": ["ES2022", "DOM"]
+    "lib": ["ES2022", "DOM", "ESNext.Disposable"],
+    "types": ["@cloudflare/workers-types"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/__tests__"]

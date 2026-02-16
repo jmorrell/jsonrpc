@@ -4,6 +4,7 @@ import {
   createRequest,
   RpcError,
   RpcProtocolError,
+  RESERVED_PROPS,
 } from "./core.js";
 import type { RpcHandlerOptions } from "./core.js";
 import type { JsonRpcErrorResponse, PromisifyMethods } from "./core.js";
@@ -33,8 +34,6 @@ type PendingCall = {
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
 };
-
-const RESERVED_PROPS = new Set(["then", "toJSON"]);
 
 export function rpcSession<TRemote extends object, TLocal extends object>(
   transport: RpcMessageTransport,
