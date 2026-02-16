@@ -1,9 +1,6 @@
 import type { RpcMessageTransport } from "../session.js";
 
-export function createLinkedTransports(): [
-  RpcMessageTransport,
-  RpcMessageTransport,
-] {
+export function createLinkedTransports(): [RpcMessageTransport, RpcMessageTransport] {
   let messageHandlerA: ((message: string) => void) | null = null;
   let messageHandlerB: ((message: string) => void) | null = null;
   let closeHandlerA: ((reason?: Error) => void) | null = null;
