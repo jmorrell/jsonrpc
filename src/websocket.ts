@@ -1,6 +1,6 @@
+import { RpcSession } from "./session.js";
 import type { RpcTransport } from "./session.js";
 import type { RpcHandlerOptions, PromisifyMethods } from "./core.js";
-import { rpcSession } from "./session.js";
 import { RESERVED_PROPS } from "./core.js";
 
 /**
@@ -73,7 +73,7 @@ export function newWorkersWebSocketRpcResponse<TLocal extends object>(
   server.accept();
 
   const transport = createWebSocketTransport(server);
-  rpcSession(transport, service ?? ({} as TLocal), {
+  new RpcSession(transport, service ?? ({} as TLocal), {
     role: "acceptor",
     onError: options?.onError,
   });
@@ -105,7 +105,7 @@ export function newWebSocketRpcSession<
   const socket = typeof ws === "string" ? new WebSocket(ws) : ws;
   const transport = createWebSocketTransport(socket);
 
-  const session = rpcSession<TRemote, TLocal>(transport, localFunctions ?? ({} as TLocal), {
+  const session = new RpcSession<TRemote, TLocal>(transport, localFunctions ?? ({} as TLocal), {
     role: "initiator",
     onError: options?.onError,
   });
