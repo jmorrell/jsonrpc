@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
-import { newHttpBatchRpcSession, RpcError } from "../http-batch.js";
-import { processRpc } from "../core.js";
-import type { RpcTransport } from "../http-batch.js";
+import { newHttpBatchRpcSession, processRpc, RpcError } from "../index.js";
+import type { RpcTransport } from "../index.js";
 
 // Service definition
 type CalcService = {

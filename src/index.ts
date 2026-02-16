@@ -8,7 +8,7 @@ export type { RpcTransport, RpcFetchOptions, RpcClientOptions } from "./http-bat
 export { newWorkersWebSocketRpcResponse, newWebSocketRpcSession } from "./websocket.js";
 
 // Core types and errors
-export { RpcError, RpcProtocolError } from "./core.js";
+export { processRpc, RpcError, RpcProtocolError } from "./core.js";
 export type {
   RpcProtocolErrorCode,
   RpcHandlerOptions,
