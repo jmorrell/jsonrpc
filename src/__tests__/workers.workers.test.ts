@@ -4,14 +4,15 @@ import {
   newHttpBatchRpcResponse,
   newHttpBatchRpcSession,
   newWorkersWebSocketRpcResponse,
+  newWorkersWebSocketRpcSession,
   newWebSocketRpcSession,
   newWorkersRpcResponse,
   RpcError,
   RpcProtocolError,
 } from "../index.js";
 
-describe("All 7 exports resolve from entry point", () => {
-  it("should export all 7 required symbols with correct types", () => {
+describe("All exports resolve from entry point", () => {
+  it("should export all required symbols with correct types", () => {
     // newHttpBatchRpcResponse (function)
     expect(typeof newHttpBatchRpcResponse).toBe("function");
 
@@ -20,6 +21,9 @@ describe("All 7 exports resolve from entry point", () => {
 
     // newWorkersWebSocketRpcResponse (function)
     expect(typeof newWorkersWebSocketRpcResponse).toBe("function");
+
+    // newWorkersWebSocketRpcSession (function)
+    expect(typeof newWorkersWebSocketRpcSession).toBe("function");
 
     // newWebSocketRpcSession (function)
     expect(typeof newWebSocketRpcSession).toBe("function");
