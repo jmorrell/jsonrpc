@@ -166,8 +166,11 @@ describe("Acceptor calls method on initiator", () => {
 });
 
 describe("Simultaneous calls without ID collision", () => {
-  type CommonService = {
+  type AddService = {
     add(a: number, b: number): Promise<number>;
+  };
+
+  type MultiplyService = {
     multiply(a: number, b: number): Promise<number>;
   };
 
@@ -178,31 +181,30 @@ describe("Simultaneous calls without ID collision", () => {
     const sendSpyA = vi.spyOn(transportA, "send");
     const sendSpyB = vi.spyOn(transportB, "send");
 
-    // Common service with methods both sides can call
-    const service: CommonService = {
-      add(a: number, b: number): Promise<number> {
-        return Promise.resolve(a + b);
-      },
-      multiply(a: number, b: number): Promise<number> {
-        return Promise.resolve(a * b);
-      },
+    const addService: AddService = {
+      add: (a, b) => Promise.resolve(a + b),
     };
 
-    const sessionA = new RpcSession<CommonService, CommonService>(transportA, service, { role: "initiator" });
-    const sessionB = new RpcSession<CommonService, CommonService>(transportB, service, { role: "acceptor" });
+    const multiplyService: MultiplyService = {
+      multiply: (a, b) => Promise.resolve(a * b),
+    };
+
+    // A provides add, calls B's multiply. B provides multiply, calls A's add.
+    const sessionA = new RpcSession<MultiplyService, AddService>(transportA, addService, { role: "initiator" });
+    const sessionB = new RpcSession<AddService, MultiplyService>(transportB, multiplyService, { role: "acceptor" });
 
     // Initiator calls: should generate wire-level IDs 1, 2, 3...
     const initiatorCalls = [
-      sessionA.remote.add(1, 2),
-      sessionA.remote.add(3, 4),
-      sessionA.remote.add(5, 6),
+      sessionA.remote.multiply(1, 2),
+      sessionA.remote.multiply(3, 4),
+      sessionA.remote.multiply(5, 6),
     ];
 
     // Acceptor calls: should generate wire-level IDs -1, -2, -3...
     const acceptorCalls = [
-      sessionB.remote.multiply(2, 3),
-      sessionB.remote.multiply(4, 5),
-      sessionB.remote.multiply(6, 7),
+      sessionB.remote.add(2, 3),
+      sessionB.remote.add(4, 5),
+      sessionB.remote.add(6, 7),
     ];
 
     await Promise.all([...initiatorCalls, ...acceptorCalls]);
@@ -252,24 +254,22 @@ describe("Simultaneous calls without ID collision", () => {
     const sendSpyA = vi.spyOn(transportA, "send");
     const sendSpyB = vi.spyOn(transportB, "send");
 
-    type EchoService = {
-      echo(value: number): Promise<number>;
+    const addService: AddService = {
+      add: (a, b) => Promise.resolve(a + b),
     };
 
-    const service: EchoService = {
-      echo(value: number): Promise<number> {
-        return Promise.resolve(value);
-      },
+    const multiplyService: MultiplyService = {
+      multiply: (a, b) => Promise.resolve(a * b),
     };
 
-    const sessionA = new RpcSession<EchoService, EchoService>(transportA, service, { role: "initiator" });
-    const sessionB = new RpcSession<EchoService, EchoService>(transportB, service, { role: "acceptor" });
+    const sessionA = new RpcSession<MultiplyService, AddService>(transportA, addService, { role: "initiator" });
+    const sessionB = new RpcSession<AddService, MultiplyService>(transportB, multiplyService, { role: "acceptor" });
 
     // Both sides make 5 calls each
     const calls = [];
     for (let i = 0; i < 5; i++) {
-      calls.push(sessionA.remote.echo(1000 + i));
-      calls.push(sessionB.remote.echo(2000 + i));
+      calls.push(sessionA.remote.multiply(1000 + i, 1));
+      calls.push(sessionB.remote.add(2000 + i, 0));
     }
 
     await Promise.all(calls);
