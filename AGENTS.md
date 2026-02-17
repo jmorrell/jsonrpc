@@ -43,6 +43,7 @@ Single public entry point via index.ts:
 
 ## Conventions
 
+- Always run `npm run fmt` before committing to ensure code passes CI formatting checks
 - Zero runtime dependencies
 - By-position params only (arrays, not named objects) per JSON-RPC 2.0
 - Single entry point via index.ts -- consumers import from @jmorrell/jsonrpc
