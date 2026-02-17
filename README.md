@@ -25,12 +25,12 @@ This library was influenced by the designs of:
 
 ## Comparison with Cap'n Web
 
-Cap'n Web is an object-capabilities RPC library from [Kenton Varda](https://github.com/kentonv). Beyond its 
+Cap'n Web is an object-capabilities RPC library from [Kenton Varda](https://github.com/kentonv). Beyond its
 support for object-capabilities, it is designed to integrate very nicely with TypeScript and Cloudflare Workers.
 I couldn't find a JSON-RPC library that worked as nicely, so I ~~stole its design~~ used Cap'n Web as inspiration
 for a JSON-RPC implementation.
 
-Cap'n Web has a number of benefits over JSON-RPC 
+Cap'n Web has a number of benefits over JSON-RPC
 
 - **Object capabilities**. You can pass functions and classes by reference. This is more than a feature, it completely changes how expressive your API can be, and enables patterns that are not possible with a more limited RPC protocol.
 - **Pipelining**. Invoke two methods and then pass their results into a third in one round-trip.
@@ -90,11 +90,11 @@ export class HelloServiceImpl implements HelloService {
 export default {
   async fetch(request: Request, env: Env) {
     let url = new URL(request.url);
-    
+
     if (url.pathname === "/api") {
       return newWorkersRpcResponse(request, new HelloServiceImpl());
     }
-    
+
     return new Response("Not found", { status: 404 });
   },
 };
@@ -104,11 +104,11 @@ export default {
 
 This library complies with the JSON-RPC 2.0 Spec, however it intentionally leaves out support for two features:
 
-*Notifications*
+_Notifications_
 
 Only requests are allowed. You can use a request with a `void` return if you do not need a response.
 
-*Named arguments*
+_Named arguments_
 
 In order to work nicely with TypeScript, we only accept positional arguments. Named params are
 rejected with `-32602 Invalid params`. Note that you can use one argment with an object as the
