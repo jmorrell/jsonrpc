@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { processRpc } from "../core.js";
+import type { JsonRpcResponse } from "../core.js";
 import { newHttpBatchRpcResponse } from "../http-batch.js";
 
 // Service for spec compliance tests
@@ -34,7 +35,7 @@ describe("spec compliance: error codes", () => {
       body: '{"jsonrpc": "2.0", "method": "foobar, "id": "1"}',
     });
     const res = await newHttpBatchRpcResponse(req, service);
-    const json = (await res.json()) as any;
+    const json = (await res.json()) as any; // Response.json() returns unknown
     expect(json.error.code).toBe(-32700);
     expect(json.error.message).toBe("Parse error");
     expect(json.id).toBeNull();
@@ -194,12 +195,12 @@ describe("spec examples (adapted for by-position params only)", () => {
       service,
     );
     expect(Array.isArray(result)).toBe(true);
-    const arr = result as any[];
+    const arr = result as JsonRpcResponse[];
     // Should have 5 responses (notification produces none)
     expect(arr).toHaveLength(5);
 
     // sum(1,2,4) = 7
-    expect(arr.find((r: any) => r.id === "1")).toEqual({
+    expect(arr.find((r) => r.id === "1")).toEqual({
       jsonrpc: "2.0",
       result: 7,
       id: "1",

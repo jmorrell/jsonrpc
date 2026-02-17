@@ -46,7 +46,7 @@ describe("WebSocket transport and RPC", () => {
         request,
       );
 
-      expect(() => (remote as any).add).toThrow();
+      expect(() => (remote as any).add).toThrow(); // bypass typed proxy to test dead proxy behavior
     });
   });
 });

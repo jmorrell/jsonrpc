@@ -7,6 +7,7 @@ import {
   processRpc,
   RpcProtocolError,
 } from "../core.js";
+import type { JsonRpcResponse } from "../core.js";
 
 // --- isJsonRpcResponse ---
 
@@ -202,10 +203,7 @@ const service = {
     throw new Error("Something went wrong");
   },
   throwsWithCode() {
-    const err = new Error("Custom error");
-    (err as any).code = 42;
-    (err as any).data = { detail: "extra info" };
-    throw err;
+    throw Object.assign(new Error("Custom error"), { code: 42, data: { detail: "extra info" } });
   },
   returnsUndefined() {
     return undefined;
@@ -213,7 +211,7 @@ const service = {
   async asyncAdd(a: number, b: number) {
     return a + b;
   },
-  notAFunction: 42 as any,
+  notAFunction: 42 as any, // deliberate type violation to test non-function method error handling
 };
 
 describe("processRpc single requests", () => {
@@ -508,13 +506,14 @@ describe("processRpc batch", () => {
       service,
     );
     expect(result).toHaveLength(3);
-    expect((result as any)[0]).toEqual({ jsonrpc: "2.0", id: 1, result: 3 });
-    expect((result as any)[1]).toMatchObject({
+    const arr = result as JsonRpcResponse[];
+    expect(arr[0]).toEqual({ jsonrpc: "2.0", id: 1, result: 3 });
+    expect(arr[1]).toMatchObject({
       jsonrpc: "2.0",
       id: 2,
       error: { code: -32000, message: "Something went wrong" },
     });
-    expect((result as any)[2]).toEqual({ jsonrpc: "2.0", id: 3, result: 2 });
+    expect(arr[2]).toEqual({ jsonrpc: "2.0", id: 3, result: 2 });
   });
 
   it("executes batch items concurrently", async () => {

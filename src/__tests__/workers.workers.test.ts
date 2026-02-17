@@ -91,7 +91,7 @@ describe("Workers runtime integration tests", () => {
 
       expect(response.status).toBe(200);
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as any; // Response.json() returns unknown
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(3);
       expect(data[0]).toEqual({ jsonrpc: "2.0", id: 1, result: 3 });
@@ -117,7 +117,7 @@ describe("Workers runtime integration tests", () => {
 
       expect(response.status).toBe(200);
 
-      const data = (await response.json()) as any;
+      const data = (await response.json()) as any; // Response.json() returns unknown
       expect(data.error).toBeDefined();
       expect(data.error.code).toBe(-32601); // Method not found
     });
