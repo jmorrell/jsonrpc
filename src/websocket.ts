@@ -108,7 +108,9 @@ export function newWorkersWebSocketRpcSession<
   options?: RpcHandlerOptions,
 ): { response: Response; remote: RemoteProxy<TRemote> } {
   if (request.headers.get("Upgrade") !== "websocket") {
-    const response = new Response("Expected WebSocket upgrade", { status: 400 });
+    const response = new Response("Expected WebSocket upgrade", {
+      status: 400,
+    });
     const remote = new Proxy({} as RemoteProxy<TRemote>, {
       get(_target, prop) {
         if (prop === Symbol.dispose) return () => {};
