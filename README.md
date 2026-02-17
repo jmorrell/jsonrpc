@@ -10,6 +10,12 @@ Lightweight [JSON-RPC 2.0](https://www.jsonrpc.org/specification) library for Ty
 - Zero dependencies
 - Designed for Cloudflare Workers
 
+## Installation
+
+```
+npm i @jmorrell/jsonrpc
+```
+
 ## Influences
 
 This library was influenced by the designs of:
