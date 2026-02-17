@@ -47,6 +47,7 @@ class RpcSessionImpl<TRemote extends object, TLocal extends object> {
   private closed = false;
   private readonly onError?: (err: RpcProtocolError) => void;
   private readonly handlerOptions: RpcHandlerOptions | undefined;
+  private readonly closeHandlers: Array<() => void> = [];
 
   constructor(
     private readonly transport: RpcTransport,
@@ -98,12 +99,16 @@ class RpcSessionImpl<TRemote extends object, TLocal extends object> {
     });
 
     transport.onClose((reason?: Error) => {
+      if (this.closed) return;
       this.closed = true;
       const closeError = reason ?? new Error("Connection closed");
       for (const [, pending] of this.pendingCalls) {
         pending.reject(closeError);
       }
       this.pendingCalls.clear();
+      for (const handler of this.closeHandlers) {
+        handler();
+      }
     });
 
     this.remote = new Proxy({} as TRemote, {
@@ -181,6 +186,14 @@ class RpcSessionImpl<TRemote extends object, TLocal extends object> {
     }
   }
 
+  onClose(handler: () => void): void {
+    if (this.closed) {
+      handler();
+      return;
+    }
+    this.closeHandlers.push(handler);
+  }
+
   close(): void {
     if (this.closed) return;
     this.closed = true;
@@ -189,6 +202,9 @@ class RpcSessionImpl<TRemote extends object, TLocal extends object> {
       pending.reject(closeError);
     }
     this.pendingCalls.clear();
+    for (const h of this.closeHandlers) {
+      h();
+    }
     this.transport.close();
   }
 }
@@ -206,7 +222,15 @@ export class RpcSession<TRemote extends object, TLocal extends object> {
     return this.#impl.remote;
   }
 
+  onClose(handler: () => void): void {
+    this.#impl.onClose(handler);
+  }
+
   close(): void {
     this.#impl.close();
+  }
+
+  [Symbol.dispose](): void {
+    this.close();
   }
 }

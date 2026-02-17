@@ -245,7 +245,7 @@ describe("Workers runtime integration tests", () => {
       });
 
       // Client calls server, server calls client.getMultiplier() mid-request
-      const result = await client.addWithClientMultiplier(2, 3);
+      const result = await client.remote.addWithClientMultiplier(2, 3);
 
       // (2 + 3) * 10 = 50
       expect(result).toBe(50);
@@ -277,27 +277,27 @@ describe("Workers runtime integration tests", () => {
       const session = await createWebSocketSession<{ add(a: number, b: number): number }>();
 
       // Verify session works
-      const result = await session.add(1, 2);
+      const result = await session.remote.add(1, 2);
       expect(result).toBe(3);
 
       // Dispose
       session[Symbol.dispose]();
 
       // Session should be closed
-      await expect(session.add(1, 2)).rejects.toThrow();
+      await expect(session.remote.add(1, 2)).rejects.toThrow();
     });
 
     it("should close session via close()", async () => {
       const session = await createWebSocketSession<{ add(a: number, b: number): number }>();
 
       // Verify session works
-      const result = await session.add(1, 2);
+      const result = await session.remote.add(1, 2);
       expect(result).toBe(3);
 
       session.close();
 
       // Session should be closed
-      await expect(session.add(1, 2)).rejects.toThrow();
+      await expect(session.remote.add(1, 2)).rejects.toThrow();
     });
   });
 

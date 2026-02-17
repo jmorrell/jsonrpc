@@ -1,4 +1,4 @@
-import { newHttpBatchRpcSession, newWebSocketRpcSession } from "@jmorrell/jsonrpc";
+import { newHttpBatchRpcSession, newWebSocketRpcSession, RpcSession } from "@jmorrell/jsonrpc";
 // Note: we import the API type defined on the server so we can typecheck against it on the client
 import type { Api } from "../../src/worker";
 import "./style.css";
@@ -11,7 +11,7 @@ type ApiProxy = {
 };
 
 let currentTransport: Transport = "http";
-let wsApi: (ApiProxy & { close(): void }) | null = null;
+let wsSession: RpcSession<Api, Record<string, never>> | null = null;
 let ws: WebSocket | null = null;
 
 function getApi(): ApiProxy {
@@ -19,19 +19,19 @@ function getApi(): ApiProxy {
     // Fresh session each time so synchronous calls get auto-batched together
     return newHttpBatchRpcSession<Api>("/api");
   }
-  return wsApi!;
+  return wsSession!.remote as unknown as ApiProxy;
 }
 
 function connectWebSocket() {
   const wsUrl = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/api`;
   ws = instrumentWebSocket(new WebSocket(wsUrl));
-  wsApi = newWebSocketRpcSession<Api>(ws);
+  wsSession = newWebSocketRpcSession<Api>(ws);
 }
 
 function disconnectWebSocket() {
-  if (wsApi) {
-    wsApi.close();
-    wsApi = null;
+  if (wsSession) {
+    wsSession.close();
+    wsSession = null;
     ws = null;
   }
 }

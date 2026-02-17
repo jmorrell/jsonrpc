@@ -91,6 +91,7 @@ async function connectAuditLog(stub: DurableObjectStub) {
       return id;
     },
     cancelSubscription(id: string) {
+      console.log("cancelSubscription", id);
       subscribers.delete(id);
       if (subscribers.size === 0) ws.close();
     },
@@ -166,15 +167,20 @@ export default {
       };
 
       // Set up bidirectional RPC with the client
-      const { response, remote } = newWorkersWebSocketRpcSession<ClientApi, typeof service>(
-        request,
-        service,
-      );
+      const { response, session } = newWorkersWebSocketRpcSession<
+        ClientApi,
+        typeof service
+      >(request, service);
 
       // Forward audit events from the DO to this client
       const subId = auditLog.subscribe((event) => {
-        remote.onEvent(event).catch(() => auditLog.cancelSubscription(subId));
+        session.remote
+          .onEvent(event)
+          .catch(() => auditLog.cancelSubscription(subId));
       });
+
+      // Clean up the subscription when the WebSocket disconnects
+      session.onClose(() => auditLog.cancelSubscription(subId));
 
       return response;
     }

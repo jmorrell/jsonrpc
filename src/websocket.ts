@@ -1,7 +1,6 @@
 import { RpcSession } from "./session.js";
 import type { RpcTransport } from "./session.js";
-import type { RpcHandlerOptions, PromisifyMethods } from "./core.js";
-import { RESERVED_PROPS } from "./core.js";
+import type { RpcHandlerOptions } from "./core.js";
 
 /**
  * Adapt a WebSocket to the RpcTransport interface.
@@ -70,34 +69,19 @@ export function newWorkersWebSocketRpcResponse<TLocal extends object>(
   return response;
 }
 
-type RemoteProxy<TRemote extends object> = PromisifyMethods<TRemote> &
-  Disposable & { close(): void };
-
-/** @internal */
-function createRemoteProxy<TRemote extends object>(
-  session: RpcSession<TRemote, any>,
-): RemoteProxy<TRemote> {
-  return new Proxy({} as RemoteProxy<TRemote>, {
-    get(_target, prop) {
-      if (prop === Symbol.dispose) return () => session.close();
-      if (prop === "close") return () => session.close();
-      if (typeof prop === "symbol") return undefined;
-      if (RESERVED_PROPS.has(prop as string)) return undefined;
-      return (session.remote as Record<string, unknown>)[prop];
-    },
-  });
-}
-
 /**
  * Handle a WebSocket upgrade request in Cloudflare Workers, returning
- * both the Response and a typed proxy for calling the client back.
+ * both the Response and the RPC session for bidirectional communication.
+ *
+ * Use session.remote to call methods on the client. Use session.onClose()
+ * to register cleanup when the connection drops.
  *
  * For fire-and-forget (no bidirectional calls), use newWorkersWebSocketRpcResponse instead.
  *
  * @param request - The HTTP request with Upgrade header
  * @param service - The service object with methods to expose (optional)
  * @param options - RPC handler options
- * @returns An object with the Response and a typed remote proxy
+ * @returns An object with the Response and the RPC session
  */
 export function newWorkersWebSocketRpcSession<
   TRemote extends object = Record<string, never>,
@@ -106,19 +90,23 @@ export function newWorkersWebSocketRpcSession<
   request: Request,
   service?: TLocal,
   options?: RpcHandlerOptions,
-): { response: Response; remote: RemoteProxy<TRemote> } {
+): { response: Response; session: RpcSession<TRemote, TLocal> } {
   if (request.headers.get("Upgrade") !== "websocket") {
     const response = new Response("Expected WebSocket upgrade", {
       status: 400,
     });
-    const remote = new Proxy({} as RemoteProxy<TRemote>, {
-      get(_target, prop) {
-        if (prop === Symbol.dispose) return () => {};
-        if (prop === "close") return () => {};
-        throw new Error("no WebSocket connection: request was not an upgrade request");
-      },
+    // Return a dead session that rejects all calls
+    const noop: RpcTransport = {
+      send() {},
+      onMessage() {},
+      onClose() {},
+      close() {},
+    };
+    const session = new RpcSession<TRemote, TLocal>(noop, {} as TLocal, {
+      role: "acceptor",
     });
-    return { response, remote };
+    session.close();
+    return { response, session };
   }
 
   const pair = new WebSocketPair();
@@ -131,9 +119,8 @@ export function newWorkersWebSocketRpcSession<
     onError: options?.onError,
   });
 
-  const remote = createRemoteProxy(session);
   const response = new Response(null, { status: 101, webSocket: client });
-  return { response, remote };
+  return { response, session };
 }
 
 type WebSocketRpcSessionOptions = {
@@ -147,7 +134,7 @@ type WebSocketRpcSessionOptions = {
  * @param ws - Either a URL string to connect to, or an existing WebSocket instance
  * @param localFunctions - Optional service object for server-to-client calls (bidirectional)
  * @param options - RPC session options
- * @returns A typed proxy with RPC methods and Symbol.dispose for cleanup
+ * @returns An RPC session with remote proxy, onClose, close, and Symbol.dispose
  */
 export function newWebSocketRpcSession<
   TRemote extends object,
@@ -156,14 +143,12 @@ export function newWebSocketRpcSession<
   ws: WebSocket | string,
   localFunctions?: TLocal,
   options?: WebSocketRpcSessionOptions,
-): RemoteProxy<TRemote> {
+): RpcSession<TRemote, TLocal> {
   const socket = typeof ws === "string" ? new WebSocket(ws) : ws;
   const transport = createWebSocketTransport(socket);
 
-  const session = new RpcSession<TRemote, TLocal>(transport, localFunctions ?? ({} as TLocal), {
+  return new RpcSession<TRemote, TLocal>(transport, localFunctions ?? ({} as TLocal), {
     role: "initiator",
     onError: options?.onError,
   });
-
-  return createRemoteProxy(session);
 }

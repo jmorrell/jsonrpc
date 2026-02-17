@@ -15,7 +15,7 @@ const localService: ClientApi = {
   },
 };
 
-const api = newWebSocketRpcSession<ServerApi, ClientApi>(wsUrl, localService);
+const session = newWebSocketRpcSession<ServerApi, ClientApi>(wsUrl, localService);
 
 // ── Call a server method ──
 
@@ -24,7 +24,7 @@ async function callMethod(method: string) {
   const params = paramReaders[method]();
 
   try {
-    const result = await (api as any)[method](...params);
+    const result = await (session.remote as any)[method](...params);
     resultEl.textContent = JSON.stringify(result);
     resultEl.className = "method-result";
   } catch (err) {

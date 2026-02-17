@@ -1853,3 +1853,129 @@ describe("Bidirectional RPC", () => {
     await expect(pB).rejects.toThrow();
   });
 });
+
+describe("onClose callback", () => {
+  it("fires when transport closes", async () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const sessionA = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
+
+    let closeCalled = false;
+    sessionA.onClose(() => {
+      closeCalled = true;
+    });
+
+    transportA.close();
+
+    expect(closeCalled).toBe(true);
+
+    sessionB.close();
+  });
+
+  it("fires when session.close() is called", () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const sessionA = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const _sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
+
+    let closeCalled = false;
+    sessionA.onClose(() => {
+      closeCalled = true;
+    });
+
+    sessionA.close();
+
+    expect(closeCalled).toBe(true);
+  });
+
+  it("fires immediately if session is already closed", () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const sessionA = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const _sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
+
+    sessionA.close();
+
+    let closeCalled = false;
+    sessionA.onClose(() => {
+      closeCalled = true;
+    });
+
+    expect(closeCalled).toBe(true);
+  });
+
+  it("supports multiple onClose handlers", () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const sessionA = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const _sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
+
+    const calls: number[] = [];
+    sessionA.onClose(() => calls.push(1));
+    sessionA.onClose(() => calls.push(2));
+    sessionA.onClose(() => calls.push(3));
+
+    sessionA.close();
+
+    expect(calls).toEqual([1, 2, 3]);
+  });
+});
+
+describe("Symbol.dispose", () => {
+  it("closes the session", () => {
+    const [transportA, transportB] = createLinkedTransports();
+
+    const sessionA = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportA,
+      {},
+      { role: "initiator" },
+    );
+    const _sessionB = new RpcSession<Record<string, never>, Record<string, never>>(
+      transportB,
+      {},
+      { role: "acceptor" },
+    );
+
+    let closeCalled = false;
+    sessionA.onClose(() => {
+      closeCalled = true;
+    });
+
+    sessionA[Symbol.dispose]();
+
+    expect(closeCalled).toBe(true);
+  });
+});
