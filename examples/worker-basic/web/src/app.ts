@@ -1,11 +1,14 @@
 import { newHttpBatchRpcSession, newWebSocketRpcSession } from "@jmorrell/jsonrpc";
+// Note: we import the API type defined on the server so we can typecheck against it on the client
 import type { Api } from "../../src/worker";
 import "./style.css";
 
 // ── Transport switching ──
 
 type Transport = "http" | "websocket";
-type ApiProxy = { [K in keyof Api]: (...args: Parameters<Api[K]>) => Promise<ReturnType<Api[K]>> };
+type ApiProxy = {
+  [K in keyof Api]: (...args: Parameters<Api[K]>) => Promise<ReturnType<Api[K]>>;
+};
 
 let currentTransport: Transport = "http";
 let wsApi: (ApiProxy & { close(): void }) | null = null;
