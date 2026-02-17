@@ -4,7 +4,7 @@ Interactive playground for `@jmorrell/jsonrpc` on Cloudflare Workers.
 
 Defines a handful of toy RPC methods on the server and serves a static page
 where you can invoke them individually or in bulk. A toggle switches between
-**HTTP batch** and **WebSocket** transports — the server code is identical
+**HTTP batch** and **WebSocket** transports. The server code is identical
 because `newWorkersRpcResponse` routes both automatically.
 
 ## Running
