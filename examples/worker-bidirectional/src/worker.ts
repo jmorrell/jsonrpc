@@ -167,16 +167,14 @@ export default {
       };
 
       // Set up bidirectional RPC with the client
-      const { response, session } = newWorkersWebSocketRpcSession<
-        ClientApi,
-        typeof service
-      >(request, service);
+      const { response, session } = newWorkersWebSocketRpcSession<ClientApi, typeof service>(
+        request,
+        service,
+      );
 
       // Forward audit events from the DO to this client
       const subId = auditLog.subscribe((event) => {
-        session.remote
-          .onEvent(event)
-          .catch(() => auditLog.cancelSubscription(subId));
+        session.remote.onEvent(event).catch(() => auditLog.cancelSubscription(subId));
       });
 
       // Clean up the subscription when the WebSocket disconnects
