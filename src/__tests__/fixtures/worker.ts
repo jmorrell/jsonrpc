@@ -29,7 +29,10 @@ export default {
         },
       };
 
-      const { response, remote } = newWorkersWebSocketRpcSession<ClientService>(request, biService);
+      const { response, remote } = newWorkersWebSocketRpcSession<ClientService, typeof biService>(
+        request,
+        biService,
+      );
       return response;
     }
 

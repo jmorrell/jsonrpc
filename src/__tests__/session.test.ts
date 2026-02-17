@@ -907,8 +907,8 @@ describe("session lifecycle", () => {
     // Verify error was logged via onError (send failed because transport is closed)
     expect(onErrorCalled).toBe(true);
     expect(errorLogged).toBeInstanceOf(RpcProtocolError);
-    expect((errorLogged as RpcProtocolError).code).toBe("SEND_FAILED");
-    expect((errorLogged as RpcProtocolError).cause).toBeInstanceOf(Error);
+    expect((errorLogged as unknown as RpcProtocolError).code).toBe("SEND_FAILED");
+    expect((errorLogged as unknown as RpcProtocolError).cause).toBeInstanceOf(Error);
 
     sessionA.close();
     sessionB.close();

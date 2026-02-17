@@ -34,7 +34,7 @@ describe("spec compliance: error codes", () => {
       body: '{"jsonrpc": "2.0", "method": "foobar, "id": "1"}',
     });
     const res = await newHttpBatchRpcResponse(req, service);
-    const json = await res.json();
+    const json = (await res.json()) as any;
     expect(json.error.code).toBe(-32700);
     expect(json.error.message).toBe("Parse error");
     expect(json.id).toBeNull();
