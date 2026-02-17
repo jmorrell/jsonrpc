@@ -4,3 +4,4 @@ dist
 .claude
 .wrangler
 .DS_Store
+package-lock.json
