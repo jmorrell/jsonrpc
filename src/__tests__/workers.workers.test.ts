@@ -156,6 +156,25 @@ describe("Workers runtime integration tests", () => {
   });
 
   describe("WebSocket functionality in Workers", () => {
+    it("should complete close handshake when client disconnects", async () => {
+      const response = await SELF.fetch("http://localhost/rpc", {
+        method: "GET",
+        headers: { Upgrade: "websocket" },
+      });
+
+      const ws = response.webSocket!;
+      ws.accept();
+
+      const closeEvent = new Promise<CloseEvent>((resolve) => {
+        ws.addEventListener("close", (event) => resolve(event as CloseEvent));
+      });
+
+      ws.close(1000, "normal closure");
+
+      const event = await closeEvent;
+      expect(event.wasClean).toBe(true);
+    });
+
     it("should upgrade WebSocket connection with 101 response", async () => {
       const response = await SELF.fetch("http://localhost/rpc", {
         method: "GET",

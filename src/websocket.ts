@@ -113,6 +113,14 @@ export function newWorkersWebSocketRpcSession<
   const [client, server] = Object.values(pair);
   server.accept();
 
+  // Complete the WebSocket close handshake when the client disconnects.
+  // Without this workerd detects a hung connection that will never
+  // generate a response (error 1101).
+  // https://developers.cloudflare.com/workers/observability/errors/
+  server.addEventListener("close", () => {
+    server.close();
+  });
+
   const transport = createWebSocketTransport(server);
   const session = new RpcSession<TRemote, TLocal>(transport, service ?? ({} as TLocal), {
     role: "acceptor",
