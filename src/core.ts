@@ -70,7 +70,10 @@ export function isJsonRpcResponse(res: unknown): res is JsonRpcResponse {
   if (typeof res !== "object" || res === null) return false;
   const obj = res as Record<string, unknown>;
   if (obj.jsonrpc !== "2.0") return false;
-  if (!("id" in obj) || (typeof obj.id !== "string" && typeof obj.id !== "number" && obj.id !== null))
+  if (
+    !("id" in obj) ||
+    (typeof obj.id !== "string" && typeof obj.id !== "number" && obj.id !== null)
+  )
     return false;
 
   if ("result" in res) {
@@ -172,8 +175,7 @@ export function extractError(err: unknown): {
   message: string;
   data?: unknown;
 } {
-  const obj =
-    typeof err === "object" && err !== null ? (err as Record<string, unknown>) : null;
+  const obj = typeof err === "object" && err !== null ? (err as Record<string, unknown>) : null;
   const code = obj && typeof obj.code === "number" ? obj.code : -32000;
   const message = obj && typeof obj.message === "string" ? obj.message : "";
   const data = obj && "data" in obj ? obj.data : undefined;
