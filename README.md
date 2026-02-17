@@ -36,9 +36,10 @@ Mainly [**it's boring**](https://mcfunley.com/choose-boring-technology) and has 
 
 A few more points:
 
-- Widely used in [Language Server Protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) which likely drives your editor
+- Widely used in the [Language Server Protocol](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/) which drives code-editing basically everywhere
 - Used in [MCP spec](https://modelcontextprotocol.io/specification/2025-11-25)
 - Easy to invoke with plain `curl` commands
+- Works well with browser dev tools
 - Many client implementations in many languages
 
 Cap'n Web is strictly more powerful, and I look forward to seeing it grow and mature, but for many projects today JSON-RPC is a great fit.
