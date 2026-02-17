@@ -1,6 +1,6 @@
 # @jmorrell/jsonrpc
 
-Last verified: 2026-02-15
+Last verified: 2026-02-16
 
 ## Tech Stack
 
@@ -28,18 +28,17 @@ Last verified: 2026-02-15
 
 - `src/core.ts` - Shared types, error classes, and transport-agnostic JSON-RPC 2.0 engine (wire format types, type guards, request/response builders, RpcProtocolError, RPC processor)
 - `src/http-batch.ts` - HTTP batch transport: newHttpBatchRpcResponse (server) + newHttpBatchRpcSession (client with auto-batching)
-- `src/session.ts` - Bidirectional RPC over message transports (defines session-specific types: RpcMessageTransport, RpcSessionOptions, RpcSession)
+- `src/session.ts` - Bidirectional RPC over message transports (defines session-specific types: RpcTransport, RpcSessionOptions, RpcSession)
 - `src/websocket.ts` - WebSocket transport: newWorkersWebSocketRpcResponse (server, fire-and-forget) + newWorkersWebSocketRpcSession (server, bidirectional with typed remote proxy) + newWebSocketRpcSession (client with Disposable proxy)
 - `src/__tests__/` - Test files
 - `src/__tests__/fixtures/worker.ts` - Test worker entry point for Workers runtime tests
-- `docs/` - Design documents and implementation plans
-- `wrangler.toml` - Minimal Workers config for test worker
+- `src/__tests__/fixtures/wrangler.toml` - Minimal Workers config for test worker
 
 ## Package Entry Points
 
 Single public entry point via index.ts:
 
-- `@jmorrell/jsonrpc` - newHttpBatchRpcResponse, newHttpBatchRpcSession, newWorkersWebSocketRpcResponse, newWorkersWebSocketRpcSession, newWebSocketRpcSession, newWorkersRpcResponse, RpcError, RpcProtocolError
+- `@jmorrell/jsonrpc` - newHttpBatchRpcResponse, newHttpBatchRpcSession, newWorkersWebSocketRpcResponse, newWorkersWebSocketRpcSession, newWebSocketRpcSession, newWorkersRpcResponse, RpcSession, processRpc, RpcError, RpcProtocolError (plus type exports: RpcRequestFn, RpcFetchOptions, RpcClientOptions, RpcTransport, RpcSessionOptions, RpcHandlerOptions, RpcProtocolErrorCode, PromisifyMethods, JsonRpcRequest, JsonRpcResponse, JsonRpcSuccessResponse, JsonRpcErrorResponse)
 
 ## Conventions
 
@@ -56,5 +55,5 @@ Single public entry point via index.ts:
 - http-batch.ts: imports from core.ts
 - session.ts: imports from core.ts
 - websocket.ts: imports from core.ts and session.ts
-- index.ts: re-exports from http-batch.ts, websocket.ts, and core.ts
-- No cross-imports between http-batch, session, and websocket
+- index.ts: re-exports from http-batch.ts, session.ts, websocket.ts, and core.ts
+- No cross-imports between http-batch and session; websocket.ts may import from session.ts

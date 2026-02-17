@@ -22,6 +22,9 @@ export default defineConfig({
           poolOptions: {
             workers: {
               main: "src/__tests__/fixtures/worker.ts",
+              wrangler: {
+                configPath: "src/__tests__/fixtures/wrangler.toml",
+              },
             },
           },
         },
