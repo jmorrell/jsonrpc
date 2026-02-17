@@ -68,12 +68,11 @@ export type RpcHandlerOptions = {
  */
 export function isJsonRpcResponse(res: unknown): res is JsonRpcResponse {
   if (typeof res !== "object" || res === null) return false;
-  if (!("jsonrpc" in res) || (res as any).jsonrpc !== "2.0") return false; // narrowing unknown in type guard
+  const obj = res as Record<string, unknown>;
+  if (obj.jsonrpc !== "2.0") return false;
   if (
-    !("id" in res) ||
-    (typeof (res as any).id !== "string" && // narrowing unknown in type guard
-      typeof (res as any).id !== "number" &&
-      (res as any).id !== null)
+    !("id" in obj) ||
+    (typeof obj.id !== "string" && typeof obj.id !== "number" && obj.id !== null)
   )
     return false;
 
@@ -176,24 +175,10 @@ export function extractError(err: unknown): {
   message: string;
   data?: unknown;
 } {
-  const code =
-    typeof err === "object" &&
-    err !== null &&
-    "code" in err &&
-    typeof (err as any).code === "number" // narrowing unknown in type guard
-      ? (err as any).code // narrowing unknown in type guard
-      : -32000;
-  const message =
-    typeof err === "object" &&
-    err !== null &&
-    "message" in err &&
-    typeof (err as any).message === "string" // narrowing unknown in type guard
-      ? (err as any).message // narrowing unknown in type guard
-      : "";
-  const data =
-    typeof err === "object" && err !== null && "data" in err
-      ? (err as any).data // narrowing unknown in type guard
-      : undefined;
+  const obj = typeof err === "object" && err !== null ? (err as Record<string, unknown>) : null;
+  const code = obj && typeof obj.code === "number" ? obj.code : -32000;
+  const message = obj && typeof obj.message === "string" ? obj.message : "";
+  const data = obj && "data" in obj ? obj.data : undefined;
   return { code, message, data };
 }
 

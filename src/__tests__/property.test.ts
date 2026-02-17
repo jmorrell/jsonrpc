@@ -16,7 +16,7 @@ const service = {
 
 function isValidResponse(res: unknown): res is JsonRpcResponse {
   if (typeof res !== "object" || res === null) return false;
-  const r = res as any;
+  const r = res as Record<string, unknown>;
   if (r.jsonrpc !== "2.0") return false;
   if (!("id" in r)) return false;
   if ("result" in r && !("error" in r)) return true;
@@ -25,8 +25,8 @@ function isValidResponse(res: unknown): res is JsonRpcResponse {
     return (
       typeof e === "object" &&
       e !== null &&
-      typeof e.code === "number" &&
-      typeof e.message === "string"
+      typeof (e as Record<string, unknown>).code === "number" &&
+      typeof (e as Record<string, unknown>).message === "string"
     );
   }
   return false;
@@ -67,7 +67,7 @@ describe("property-based tests", () => {
         async (batch) => {
           const result = await processRpc(batch, service);
           expect(Array.isArray(result)).toBe(true);
-          expect((result as any[]).length).toBe(batch.length);
+          expect((result as JsonRpcResponse[]).length).toBe(batch.length);
         },
       ),
       { numRuns: 200 },
@@ -109,7 +109,7 @@ describe("property-based tests", () => {
         }),
         async (request) => {
           const result = await processRpc(request, service);
-          if (result && "error" in (result as any)) {
+          if (result && !Array.isArray(result) && "error" in result) {
             const err = (result as JsonRpcErrorResponse).error;
             expect(typeof err.code).toBe("number");
             expect(typeof err.message).toBe("string");

@@ -4,14 +4,15 @@ import {
   newHttpBatchRpcResponse,
   newHttpBatchRpcSession,
   newWorkersWebSocketRpcResponse,
+  newWorkersWebSocketRpcSession,
   newWebSocketRpcSession,
   newWorkersRpcResponse,
   RpcError,
   RpcProtocolError,
 } from "../index.js";
 
-describe("All 7 exports resolve from entry point", () => {
-  it("should export all 7 required symbols with correct types", () => {
+describe("All exports resolve from entry point", () => {
+  it("should export all required symbols with correct types", () => {
     // newHttpBatchRpcResponse (function)
     expect(typeof newHttpBatchRpcResponse).toBe("function");
 
@@ -20,6 +21,9 @@ describe("All 7 exports resolve from entry point", () => {
 
     // newWorkersWebSocketRpcResponse (function)
     expect(typeof newWorkersWebSocketRpcResponse).toBe("function");
+
+    // newWorkersWebSocketRpcSession (function)
+    expect(typeof newWorkersWebSocketRpcSession).toBe("function");
 
     // newWebSocketRpcSession (function)
     expect(typeof newWebSocketRpcSession).toBe("function");
@@ -34,17 +38,18 @@ describe("All 7 exports resolve from entry point", () => {
     expect(typeof RpcProtocolError).toBe("function");
   });
 
-  it("should instantiate RpcError with message", () => {
-    const error = new RpcError("test error");
+  it("should instantiate RpcError with message and code", () => {
+    const error = new RpcError("test error", -32600);
     expect(error).toBeInstanceOf(RpcError);
     expect(error.message).toBe("test error");
+    expect(error.code).toBe(-32600);
   });
 
-  it("should instantiate RpcProtocolError with message", () => {
-    const error = new RpcProtocolError(-32700, "protocol error");
+  it("should instantiate RpcProtocolError with code and message", () => {
+    const error = new RpcProtocolError("PARSE_ERROR", "protocol error");
     expect(error).toBeInstanceOf(RpcProtocolError);
     expect(error.message).toBe("protocol error");
-    expect(error.code).toBe(-32700);
+    expect(error.code).toBe("PARSE_ERROR");
   });
 });
 
@@ -86,7 +91,7 @@ describe("Workers runtime integration tests", () => {
 
       expect(response.status).toBe(200);
 
-      const data = await response.json();
+      const data = (await response.json()) as any; // Response.json() returns unknown
       expect(Array.isArray(data)).toBe(true);
       expect(data).toHaveLength(3);
       expect(data[0]).toEqual({ jsonrpc: "2.0", id: 1, result: 3 });
@@ -112,7 +117,7 @@ describe("Workers runtime integration tests", () => {
 
       expect(response.status).toBe(200);
 
-      const data = await response.json();
+      const data = (await response.json()) as any; // Response.json() returns unknown
       expect(data.error).toBeDefined();
       expect(data.error.code).toBe(-32601); // Method not found
     });

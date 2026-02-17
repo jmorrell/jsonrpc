@@ -9,7 +9,11 @@ export { RpcSession } from "./session.js";
 export type { RpcTransport, RpcSessionOptions } from "./session.js";
 
 // WebSocket transport
-export { newWorkersWebSocketRpcResponse, newWebSocketRpcSession } from "./websocket.js";
+export {
+  newWorkersWebSocketRpcResponse,
+  newWorkersWebSocketRpcSession,
+  newWebSocketRpcSession,
+} from "./websocket.js";
 
 // Core types and errors
 export { processRpc, RpcError, RpcProtocolError } from "./core.js";

@@ -29,7 +29,7 @@ Last verified: 2026-02-15
 - `src/core.ts` - Shared types, error classes, and transport-agnostic JSON-RPC 2.0 engine (wire format types, type guards, request/response builders, RpcProtocolError, RPC processor)
 - `src/http-batch.ts` - HTTP batch transport: newHttpBatchRpcResponse (server) + newHttpBatchRpcSession (client with auto-batching)
 - `src/session.ts` - Bidirectional RPC over message transports (defines session-specific types: RpcMessageTransport, RpcSessionOptions, RpcSession)
-- `src/websocket.ts` - WebSocket transport: newWorkersWebSocketRpcResponse (server) + newWebSocketRpcSession (client with Disposable proxy)
+- `src/websocket.ts` - WebSocket transport: newWorkersWebSocketRpcResponse (server, fire-and-forget) + newWorkersWebSocketRpcSession (server, bidirectional with typed remote proxy) + newWebSocketRpcSession (client with Disposable proxy)
 - `src/__tests__/` - Test files
 - `src/__tests__/fixtures/worker.ts` - Test worker entry point for Workers runtime tests
 - `docs/` - Design documents and implementation plans
@@ -39,7 +39,7 @@ Last verified: 2026-02-15
 
 Single public entry point via index.ts:
 
-- `@jmorrell/jsonrpc` - newHttpBatchRpcResponse, newHttpBatchRpcSession, newWorkersWebSocketRpcResponse, newWebSocketRpcSession, newWorkersRpcResponse, RpcError, RpcProtocolError
+- `@jmorrell/jsonrpc` - newHttpBatchRpcResponse, newHttpBatchRpcSession, newWorkersWebSocketRpcResponse, newWorkersWebSocketRpcSession, newWebSocketRpcSession, newWorkersRpcResponse, RpcError, RpcProtocolError
 
 ## Conventions
 

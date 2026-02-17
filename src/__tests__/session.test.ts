@@ -425,10 +425,10 @@ describe("Remote method that throws", () => {
 
     const acceptorService: ThrowService = {
       throwWithData(): Promise<never> {
-        const err = new Error("Something went wrong");
-        (err as any).code = -32000;
-        (err as any).data = { details: "extra info" };
-        throw err;
+        throw Object.assign(new Error("Something went wrong"), {
+          code: -32000,
+          data: { details: "extra info" },
+        });
       },
     };
 
@@ -907,8 +907,8 @@ describe("session lifecycle", () => {
     // Verify error was logged via onError (send failed because transport is closed)
     expect(onErrorCalled).toBe(true);
     expect(errorLogged).toBeInstanceOf(RpcProtocolError);
-    expect((errorLogged as RpcProtocolError).code).toBe("SEND_FAILED");
-    expect((errorLogged as RpcProtocolError).cause).toBeInstanceOf(Error);
+    expect((errorLogged as unknown as RpcProtocolError).code).toBe("SEND_FAILED");
+    expect((errorLogged as unknown as RpcProtocolError).cause).toBeInstanceOf(Error);
 
     sessionA.close();
     sessionB.close();
@@ -1785,17 +1785,13 @@ describe("Bidirectional RPC", () => {
 
     const serviceA: ServiceA = {
       failA() {
-        const err = new Error("Error from A");
-        (err as any).code = -32001;
-        throw err;
+        throw Object.assign(new Error("Error from A"), { code: -32001 });
       },
     };
 
     const serviceB: ServiceB = {
       failB() {
-        const err = new Error("Error from B");
-        (err as any).code = -32002;
-        throw err;
+        throw Object.assign(new Error("Error from B"), { code: -32002 });
       },
     };
 
