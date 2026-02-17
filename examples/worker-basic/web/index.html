@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@jmorrell/jsonrpc Playground</title>
+  </head>
+  <body>
+    <header>
+      <h1>@jmorrell/jsonrpc</h1>
+      <p class="subtitle">
+        Cloudflare Workers playground &mdash; call typed server functions, see the raw JSON-RPC
+        protocol
+      </p>
+    </header>
+
+    <main>
+      <section>
+        <h2>Methods</h2>
+
+        <div class="card">
+          <h3>add(a, b)</h3>
+          <p class="description">Adds two numbers</p>
+          <div class="inputs">
+            <label>a <input type="number" id="add-a" value="2" /></label>
+            <label>b <input type="number" id="add-b" value="3" /></label>
+          </div>
+          <button onclick="callMethod('add')">Call</button>
+          <div class="result-area" id="add-result"></div>
+        </div>
+
+        <div class="card">
+          <h3>multiply(a, b)</h3>
+          <p class="description">Multiplies two numbers</p>
+          <div class="inputs">
+            <label>a <input type="number" id="multiply-a" value="6" /></label>
+            <label>b <input type="number" id="multiply-b" value="7" /></label>
+          </div>
+          <button onclick="callMethod('multiply')">Call</button>
+          <div class="result-area" id="multiply-result"></div>
+        </div>
+
+        <div class="card">
+          <h3>greet(name)</h3>
+          <p class="description">Returns a greeting</p>
+          <div class="inputs">
+            <label>name <input type="text" id="greet-name" value="World" /></label>
+          </div>
+          <button onclick="callMethod('greet')">Call</button>
+          <div class="result-area" id="greet-result"></div>
+        </div>
+
+        <div class="card">
+          <h3>now()</h3>
+          <p class="description">Returns the current server time</p>
+          <button onclick="callMethod('now')">Call</button>
+          <div class="result-area" id="now-result"></div>
+        </div>
+
+        <div class="card">
+          <h3>echo(...args)</h3>
+          <p class="description">Echoes back whatever you send</p>
+          <div class="inputs">
+            <label
+              >args (JSON array) <input type="text" id="echo-args" value='["hello", 42, true]'
+            /></label>
+          </div>
+          <button onclick="callMethod('echo')">Call</button>
+          <div class="result-area" id="echo-result"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Auto-Batching</h2>
+        <p class="section-description">
+          Calls made in the same tick are automatically batched into a single HTTP POST. Click below
+          to call all 5 methods via <code>Promise.all</code> &mdash; the library sends one request.
+        </p>
+
+        <div class="card">
+          <button onclick="runBatch()">Run Batch (5 calls, 1 POST)</button>
+          <div class="result-area" id="batch-result"></div>
+          <div class="batch-values" id="batch-values"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/app.ts"></script>
+  </body>
+</html>

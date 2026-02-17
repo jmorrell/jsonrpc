@@ -1,0 +1,219 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1e293b;
+  background: #f8fafc;
+  padding: 0 16px 64px;
+}
+
+header {
+  max-width: 720px;
+  margin: 48px auto 32px;
+}
+
+header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+section {
+  margin-bottom: 40px;
+}
+
+h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.section-description {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin: -8px 0 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  color: #0f172a;
+}
+
+.description {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin: 2px 0 12px;
+}
+
+.inputs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #475569;
+  flex: 1;
+  min-width: 120px;
+}
+
+input {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+}
+
+button {
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  background: #0284c7;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button:hover {
+  background: #0369a1;
+}
+
+button:active {
+  background: #075985;
+}
+
+button:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.result-area {
+  margin-top: 12px;
+}
+
+.result-area:empty {
+  display: none;
+}
+
+.batch-values {
+  display: none;
+  margin-top: 12px;
+}
+
+.batch-values pre {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  color: #166534;
+}
+
+.rpc-exchange {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .rpc-exchange {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rpc-panel {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rpc-panel-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 10px;
+  color: #fff;
+}
+
+.rpc-panel-label.request {
+  background: #475569;
+}
+
+.rpc-panel-label.response {
+  background: #0284c7;
+}
+
+.rpc-panel-label.response.error {
+  background: #dc2626;
+}
+
+.rpc-panel pre {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  padding: 10px;
+  margin: 0;
+  overflow-x: auto;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.rpc-time {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 6px;
+  text-align: right;
+}
