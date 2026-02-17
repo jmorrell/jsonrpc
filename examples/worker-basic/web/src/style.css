@@ -32,6 +32,63 @@ header h1 {
   font-size: 0.95rem;
 }
 
+.transport-toggle {
+  display: inline-flex;
+  margin-top: 16px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.toggle-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 0;
+  background: #fff;
+  color: #475569;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.toggle-btn:hover {
+  background: #f1f5f9;
+}
+
+.toggle-btn.active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.toggle-btn + .toggle-btn {
+  border-left: 1px solid #cbd5e1;
+}
+
+.ws-status-row {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.ws-status {
+  font-weight: 600;
+}
+
+.ws-status.connecting {
+  color: #d97706;
+}
+
+.ws-status.connected {
+  color: #059669;
+}
+
+.ws-status.disconnected {
+  color: #dc2626;
+}
+
 main {
   max-width: 720px;
   margin: 0 auto;

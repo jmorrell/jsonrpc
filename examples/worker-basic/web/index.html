@@ -12,6 +12,23 @@
         Cloudflare Workers playground &mdash; call typed server functions, see the raw JSON-RPC
         protocol
       </p>
+
+      <div class="transport-toggle">
+        <button class="toggle-btn active" data-transport="http" onclick="switchTransport('http')">
+          HTTP Batch
+        </button>
+        <button
+          class="toggle-btn"
+          data-transport="websocket"
+          onclick="switchTransport('websocket')"
+        >
+          WebSocket
+        </button>
+      </div>
+
+      <div id="ws-status-row" class="ws-status-row" style="display: none">
+        Connection: <span id="ws-status" class="ws-status connecting">Connecting&hellip;</span>
+      </div>
     </header>
 
     <main>
@@ -70,17 +87,31 @@
         </div>
       </section>
 
-      <section>
+      <section id="section-http">
         <h2>Auto-Batching</h2>
         <p class="section-description">
           Calls made in the same tick are automatically batched into a single HTTP POST. Click below
           to call all 5 methods via <code>Promise.all</code> &mdash; the library sends one request.
         </p>
-
         <div class="card">
           <button onclick="runBatch()">Run Batch (5 calls, 1 POST)</button>
           <div class="result-area" id="batch-result"></div>
           <div class="batch-values" id="batch-values"></div>
+        </div>
+      </section>
+
+      <section id="section-ws" style="display: none">
+        <h2>Multiple Concurrent Calls</h2>
+        <p class="section-description">
+          With WebSockets, batching is unnecessary. Each call is an individual JSON-RPC message over
+          the same persistent connection, so there is no per-call HTTP overhead to amortize. Click
+          below to fire 5 calls concurrently via <code>Promise.all</code> &mdash; you'll see 5
+          individual messages sent and 5 responses received.
+        </p>
+        <div class="card">
+          <button onclick="runMultiple()">Run 5 calls (5 messages)</button>
+          <div class="result-area" id="multi-result"></div>
+          <div class="batch-values" id="multi-values"></div>
         </div>
       </section>
     </main>
