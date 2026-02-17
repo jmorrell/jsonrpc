@@ -1,0 +1,13 @@
+name = "jsonrpc-bidirectional-example"
+main = "src/worker.ts"
+compatibility_date = "2024-09-01"
+
+[assets]
+directory = "web/dist"
+
+[durable_objects]
+bindings = [{ name = "AUDIT_LOG", class_name = "AuditLog" }]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["AuditLog"]

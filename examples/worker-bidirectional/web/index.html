@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@jmorrell/jsonrpc Bidirectional RPC</title>
+  </head>
+  <body>
+    <header>
+      <h1>@jmorrell/jsonrpc <span class="badge">Bidirectional</span></h1>
+      <p class="subtitle">
+        Server-to-client calls over WebSocket &mdash; invoke methods on the left, watch audit events
+        arrive on the right
+      </p>
+    </header>
+
+    <main>
+      <section class="col-methods">
+        <h2>Methods</h2>
+
+        <div class="card">
+          <div class="card-row">
+            <div class="card-left">
+              <h3>add(a, b)</h3>
+              <div class="inputs">
+                <label>a <input type="number" id="add-a" value="2" /></label>
+                <label>b <input type="number" id="add-b" value="3" /></label>
+              </div>
+              <button onclick="callMethod('add')">Call</button>
+            </div>
+            <div class="method-result" id="add-result"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-row">
+            <div class="card-left">
+              <h3>multiply(a, b)</h3>
+              <div class="inputs">
+                <label>a <input type="number" id="multiply-a" value="6" /></label>
+                <label>b <input type="number" id="multiply-b" value="7" /></label>
+              </div>
+              <button onclick="callMethod('multiply')">Call</button>
+            </div>
+            <div class="method-result" id="multiply-result"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-row">
+            <div class="card-left">
+              <h3>greet(name)</h3>
+              <div class="inputs">
+                <label>name <input type="text" id="greet-name" value="World" /></label>
+              </div>
+              <button onclick="callMethod('greet')">Call</button>
+            </div>
+            <div class="method-result" id="greet-result"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-row">
+            <div class="card-left">
+              <h3>now()</h3>
+              <button onclick="callMethod('now')">Call</button>
+            </div>
+            <div class="method-result" id="now-result"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-row">
+            <div class="card-left">
+              <h3>echo(...args)</h3>
+              <div class="inputs">
+                <label
+                  >args (JSON array) <input type="text" id="echo-args" value='["hello", 42, true]'
+                /></label>
+              </div>
+              <button onclick="callMethod('echo')">Call</button>
+            </div>
+            <div class="method-result" id="echo-result"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="col-log">
+        <h2>Event Log</h2>
+        <p class="section-description">
+          The server calls <code>onEvent()</code> on every connected client whenever any method is
+          invoked. Open this page in two tabs to see events from both.
+        </p>
+        <div class="log-container" id="event-log">
+          <div class="log-empty">Waiting for events&hellip;</div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/app.ts"></script>
+  </body>
+</html>

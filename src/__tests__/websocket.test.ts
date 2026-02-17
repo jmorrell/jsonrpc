@@ -31,22 +31,22 @@ describe("WebSocket transport and RPC", () => {
       expect(response.status).toBe(400);
     });
 
-    it("should return a remote that allows dispose/close on non-upgrade requests", () => {
+    it("should return a closed session that allows dispose/close on non-upgrade requests", () => {
       const request = new Request("http://example.com", { method: "GET" });
-      const { remote } = newWorkersWebSocketRpcSession(request);
+      const { session } = newWorkersWebSocketRpcSession(request);
 
       // dispose and close should be no-ops, not throw
-      expect(() => remote[Symbol.dispose]()).not.toThrow();
-      expect(() => remote.close()).not.toThrow();
+      expect(() => session[Symbol.dispose]()).not.toThrow();
+      expect(() => session.close()).not.toThrow();
     });
 
-    it("should return a remote that throws on method access for non-upgrade requests", () => {
+    it("should return a closed session that rejects calls for non-upgrade requests", async () => {
       const request = new Request("http://example.com", { method: "GET" });
-      const { remote } = newWorkersWebSocketRpcSession<{ add(a: number, b: number): number }>(
+      const { session } = newWorkersWebSocketRpcSession<{ add(a: number, b: number): number }>(
         request,
       );
 
-      expect(() => (remote as any).add).toThrow(); // bypass typed proxy to test dead proxy behavior
+      await expect(session.remote.add(1, 2)).rejects.toThrow();
     });
   });
 });

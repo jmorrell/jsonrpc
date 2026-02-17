@@ -24,12 +24,12 @@ export default {
     if (url.pathname === "/bidirectional") {
       const biService = {
         async addWithClientMultiplier(a: number, b: number): Promise<number> {
-          const multiplier = await remote.getMultiplier();
+          const multiplier = await session.remote.getMultiplier();
           return (a + b) * multiplier;
         },
       };
 
-      const { response, remote } = newWorkersWebSocketRpcSession<ClientService, typeof biService>(
+      const { response, session } = newWorkersWebSocketRpcSession<ClientService, typeof biService>(
         request,
         biService,
       );

@@ -2,3 +2,5 @@ repos
 node_modules
 dist
 .claude
+.wrangler
+.DS_Store
