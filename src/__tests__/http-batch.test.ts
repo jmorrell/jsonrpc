@@ -191,46 +191,6 @@ describe("newHttpBatchRpcSession batching", () => {
   });
 });
 
-// --- Symbol.dispose tests ---
-
-describe("newHttpBatchRpcSession Symbol.dispose", () => {
-  it("has Symbol.dispose property", async () => {
-    const { transport } = mockTransport();
-    type Svc = { test(): string };
-    const client = newHttpBatchRpcSession<Svc>({ transport });
-
-    expect(typeof client[Symbol.dispose]).toBe("function");
-  });
-
-  it("Symbol.dispose can be called without throwing", async () => {
-    const { transport } = mockTransport();
-    type Svc = { test(): string };
-    const client = newHttpBatchRpcSession<Svc>({ transport });
-
-    expect(() => {
-      client[Symbol.dispose]();
-    }).not.toThrow();
-  });
-
-  it("Symbol.dispose is non-enumerable", async () => {
-    const { transport } = mockTransport();
-    type Svc = { test(): string };
-    const client = newHttpBatchRpcSession<Svc>({ transport });
-
-    expect(Object.keys(client)).toHaveLength(0);
-  });
-
-  it("spreading the proxy does not include Symbol.dispose", async () => {
-    const { transport } = mockTransport();
-    type Svc = { test(): string };
-    const client = newHttpBatchRpcSession<Svc>({ transport });
-
-    const spread = { ...client };
-    expect(Object.keys(spread)).toHaveLength(0);
-    expect(Symbol.dispose in spread).toBe(false);
-  });
-});
-
 // --- Server HTTP handler tests ---
 
 describe("newHttpBatchRpcResponse", () => {

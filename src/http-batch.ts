@@ -103,7 +103,7 @@ type PendingCall = {
  */
 export function newHttpBatchRpcSession<T extends object>(
   options: RpcClientOptions,
-): PromisifyMethods<T> & Disposable {
+): PromisifyMethods<T> {
   let transport: RpcRequestFn;
 
   if (typeof options === "string") {
@@ -208,9 +208,6 @@ export function newHttpBatchRpcSession<T extends object>(
     {},
     {
       get(_target, prop) {
-        if (prop === Symbol.dispose) {
-          return () => {};
-        }
         if (typeof prop === "symbol") return undefined;
         if (RESERVED_PROPS.has(prop as string)) return undefined;
         if (prop === "notify") return undefined;
@@ -226,7 +223,7 @@ export function newHttpBatchRpcSession<T extends object>(
         };
       },
     },
-  ) as PromisifyMethods<T> & Disposable;
+  ) as PromisifyMethods<T>;
 }
 
 export { RpcError } from "./core.js";

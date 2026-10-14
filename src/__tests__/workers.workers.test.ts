@@ -319,26 +319,4 @@ describe("Workers runtime integration tests", () => {
       await expect(session.remote.add(1, 2)).rejects.toThrow();
     });
   });
-
-  describe("Symbol.dispose in Workers runtime", () => {
-    it("should have Symbol.dispose as a function on HTTP batch proxy", async () => {
-      const session = newHttpBatchRpcSession({
-        url: "http://localhost:8000",
-        transport: async (body: string) => {
-          const response = await SELF.fetch("http://localhost/rpc", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body,
-          });
-          return response.text();
-        },
-      });
-
-      // Verify Symbol.dispose is a function on the proxy
-      expect(typeof session[Symbol.dispose]).toBe("function");
-
-      // Clean up
-      session[Symbol.dispose]();
-    });
-  });
 });
