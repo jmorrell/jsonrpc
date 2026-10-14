@@ -1479,7 +1479,7 @@ describe("session error resilience", () => {
   });
 
   describe("Invalid response", () => {
-    it("response that fails type guard is logged with INVALID_RESPONSE code", async () => {
+    it("rejects a matched invalid response before reporting it and keeps the session usable", async () => {
       const [transportA, transportB] = createLinkedTransports();
 
       type EchoService = {
@@ -1487,6 +1487,7 @@ describe("session error resilience", () => {
       };
 
       const errors: unknown[] = [];
+      const diagnosticFailure = new Error("Diagnostic callback failed");
       const sessionA = new RpcSession<EchoService, Record<string, never>>(
         transportA,
         {},
@@ -1494,29 +1495,44 @@ describe("session error resilience", () => {
           role: "initiator",
           onError(err) {
             errors.push(err);
+            throw diagnosticFailure;
           },
         },
       );
 
       const sessionB = new RpcSession<Record<string, never>, EchoService>(
         transportB,
-        { echo: (v: string) => Promise.resolve(v) },
+        {
+          echo(value) {
+            if (value === "pending") return new Promise(() => {});
+            return Promise.resolve(value);
+          },
+        },
         { role: "acceptor" },
       );
 
+      const send = vi.spyOn(transportA, "send");
+      const pending = sessionA.remote.echo("pending");
+      const request = JSON.parse(send.mock.calls[0][0]);
+
       // Inject a response-like object that fails the type guard (missing jsonrpc version)
-      transportB.send(
-        JSON.stringify({
-          id: 1,
-          result: "bad",
-        }),
-      );
+      expect(() =>
+        transportB.send(
+          JSON.stringify({
+            id: request.id,
+            result: "bad",
+          }),
+        ),
+      ).toThrow(diagnosticFailure);
 
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      expect(errors.length).toBe(1);
+      await expect(pending).rejects.toMatchObject({
+        code: "INVALID_RESPONSE",
+        message: "Received invalid JSON-RPC response",
+      });
+      expect(errors).toHaveLength(1);
       expect(errors[0]).toBeInstanceOf(RpcProtocolError);
       expect((errors[0] as RpcProtocolError).code).toBe("INVALID_RESPONSE");
+      await expect(sessionA.remote.echo("ok")).resolves.toBe("ok");
 
       sessionA.close();
       sessionB.close();

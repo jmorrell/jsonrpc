@@ -154,9 +154,18 @@ class RpcSessionImpl<TRemote extends object, TLocal extends object> {
 
   private handleIncomingResponse(parsed: unknown): void {
     if (!isJsonRpcResponse(parsed)) {
-      this.onError?.(
-        new RpcProtocolError("INVALID_RESPONSE", "Received invalid JSON-RPC response"),
-      );
+      const error = new RpcProtocolError("INVALID_RESPONSE", "Received invalid JSON-RPC response");
+      if (typeof parsed === "object" && parsed !== null) {
+        const id = (parsed as Record<string, unknown>).id;
+        if (typeof id === "string" || typeof id === "number") {
+          const pending = this.pendingCalls.get(id);
+          if (pending) {
+            this.pendingCalls.delete(id);
+            pending.reject(error);
+          }
+        }
+      }
+      this.onError?.(error);
       return;
     }
 
