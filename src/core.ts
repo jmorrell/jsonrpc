@@ -61,6 +61,8 @@ export class RpcProtocolError extends Error {
 
 export type RpcHandlerOptions = {
   onError?: (err: RpcProtocolError) => void;
+  /** Select the public representation of a handler failure. Must return synchronously. */
+  serializeError?: (error: unknown, method: string) => JsonRpcErrorResponse["error"];
 };
 
 /**
@@ -234,7 +236,9 @@ export async function processSingleRequest(
         cause: err,
       }),
     );
-    const { code, message, data } = extractError(err);
+    const { code, message, data } = options?.serializeError
+      ? options.serializeError(err, method)
+      : extractError(err);
     return errorResponse(id, code, message, data);
   }
 }

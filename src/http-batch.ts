@@ -86,7 +86,22 @@ function fetchTransport(options: RpcFetchOptions): RpcRequestFn {
       body,
     });
     if (!res.ok) {
-      throw new RpcError(res.statusText, res.status);
+      let message = `Request failed (HTTP ${res.status}).`;
+      if (
+        res.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase() === "application/json"
+      ) {
+        const body: unknown = await res.json().catch(() => null);
+        if (
+          typeof body === "object" &&
+          body !== null &&
+          "error" in body &&
+          typeof body.error === "string" &&
+          body.error.trim()
+        ) {
+          message = body.error;
+        }
+      }
+      throw new RpcError(message, res.status);
     }
     return res.text();
   };
