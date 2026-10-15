@@ -20,7 +20,7 @@ export type RpcTransport = {
   close(): void;
 };
 
-export type RpcSessionOptions = {
+export type RpcSessionOptions = RpcHandlerOptions & {
   // In bidirectional RPC, both sides send requests with an `id` field that the
   // peer echoes back in its response. JSON-RPC IDs are shared on the wire — if
   // both sides independently pick the same ID, responses become ambiguous and
@@ -31,7 +31,6 @@ export type RpcSessionOptions = {
   // automatically; only callers using RpcSession with a raw transport need to
   // provide it.
   role?: "initiator" | "acceptor"; // default: 'initiator'
-  onError?: (err: RpcProtocolError) => void;
 };
 
 type PendingCall = {
@@ -58,7 +57,7 @@ class RpcSessionImpl<TRemote extends object, TLocal extends object> {
     this.onError = options?.onError;
     this.nextId = role === "initiator" ? 1 : -1;
     this.idStep = role === "initiator" ? 1 : -1;
-    this.handlerOptions = this.onError ? { onError: this.onError } : undefined;
+    this.handlerOptions = options;
 
     transport.onMessage((message: string) => {
       let parsed: unknown;

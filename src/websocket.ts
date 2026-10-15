@@ -123,17 +123,13 @@ export function newWorkersWebSocketRpcSession<
 
   const transport = createWebSocketTransport(server);
   const session = new RpcSession<TRemote, TLocal>(transport, service ?? ({} as TLocal), {
+    ...options,
     role: "acceptor",
-    onError: options?.onError,
   });
 
   const response = new Response(null, { status: 101, webSocket: client });
   return { response, session };
 }
-
-type WebSocketRpcSessionOptions = {
-  onError?: RpcHandlerOptions["onError"];
-};
 
 /**
  * Create a WebSocket RPC client session.
@@ -150,13 +146,13 @@ export function newWebSocketRpcSession<
 >(
   ws: WebSocket | string,
   localFunctions?: TLocal,
-  options?: WebSocketRpcSessionOptions,
+  options?: RpcHandlerOptions,
 ): RpcSession<TRemote, TLocal> {
   const socket = typeof ws === "string" ? new WebSocket(ws) : ws;
   const transport = createWebSocketTransport(socket);
 
   return new RpcSession<TRemote, TLocal>(transport, localFunctions ?? ({} as TLocal), {
+    ...options,
     role: "initiator",
-    onError: options?.onError,
   });
 }

@@ -293,3 +293,131 @@ describe("newHttpBatchRpcResponse", () => {
     expect(json).toEqual({ jsonrpc: "2.0", id: 1, result: 7 });
   });
 });
+
+describe("HTTP error explanations", () => {
+  it("preserves the server's upload limit explanation for every call in a rejected batch", async () => {
+    let fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        Response.json(
+          { error: "Request body exceeds the upload limit", maxBytes: 2097152 },
+          { status: 413 },
+        ),
+      );
+    using client = newHttpBatchRpcSession<{ add(a: number, b: number): number }>(
+      "https://example.com/jsonrpc",
+    );
+    try {
+      let results = await Promise.allSettled([client.add(1, 2), client.add(3, 4)]);
+      expect(results).toEqual([
+        {
+          status: "rejected",
+          reason: expect.objectContaining({
+            code: 413,
+            message: "Request body exceeds the upload limit",
+          }),
+        },
+        {
+          status: "rejected",
+          reason: expect.objectContaining({
+            code: 413,
+            message: "Request body exceeds the upload limit",
+          }),
+        },
+      ]);
+    } finally {
+      fetch.mockRestore();
+    }
+  });
+
+  it.each([
+    ["text/html", '{"error":"private proxy diagnostic"}'],
+    ["application/json", "not JSON"],
+    ["application/json", '{"error":{"stack":"private"}}'],
+    ["application/json", '{"error":"   "}'],
+  ])("uses a nonempty status fallback for unusable %s responses", async (contentType, body) => {
+    let fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(
+        new Response(body, { status: 503, headers: { "Content-Type": contentType } }),
+      );
+    using client = newHttpBatchRpcSession<{ add(a: number, b: number): number }>(
+      "https://example.com/jsonrpc",
+    );
+    try {
+      await expect(client.add(1, 2)).rejects.toMatchObject({
+        code: 503,
+        message: "Request failed (HTTP 503).",
+      });
+    } finally {
+      fetch.mockRestore();
+    }
+  });
+});
+
+describe("public handler errors", () => {
+  it("serializes batch failures without losing diagnostics or changing protocol errors", async () => {
+    const unexpected = Object.assign(new Error("private database detail"), { data: "private" });
+    const onError = vi.fn();
+    const service = {
+      expected() {
+        throw new RpcError("Choose another name", -32009, { field: "name" });
+      },
+      unexpected() {
+        throw unexpected;
+      },
+      nonError() {
+        throw "private thrown string";
+      },
+      success() {
+        return 42;
+      },
+    };
+    const response = await newHttpBatchRpcResponse(
+      new Request("https://example.com/rpc", {
+        method: "POST",
+        body: JSON.stringify(
+          ["expected", "unexpected", "nonError", "success", "missing"].map((method, id) => ({
+            jsonrpc: "2.0",
+            id,
+            method,
+          })),
+        ),
+      }),
+      service,
+      {
+        onError,
+        serializeError(error, method) {
+          if (error instanceof RpcError)
+            return { code: error.code, message: error.message, data: error.data };
+          return { code: -32603, message: `Could not complete ${method}. Check its result.` };
+        },
+      },
+    );
+    expect(await response.json()).toEqual([
+      {
+        jsonrpc: "2.0",
+        id: 0,
+        error: { code: -32009, message: "Choose another name", data: { field: "name" } },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        error: { code: -32603, message: "Could not complete unexpected. Check its result." },
+      },
+      {
+        jsonrpc: "2.0",
+        id: 2,
+        error: { code: -32603, message: "Could not complete nonError. Check its result." },
+      },
+      { jsonrpc: "2.0", id: 3, result: 42 },
+      { jsonrpc: "2.0", id: 4, error: { code: -32601, message: "Method not found" } },
+    ]);
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "HANDLER_ERROR", cause: unexpected }),
+    );
+    expect(onError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "HANDLER_ERROR", cause: "private thrown string" }),
+    );
+  });
+});

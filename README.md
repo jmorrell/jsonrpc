@@ -300,6 +300,45 @@ Internal errors follow the [spec-defined error codes](https://www.jsonrpc.org/sp
 | -32602 | Invalid params   |
 | -32603 | Internal error   |
 
+### Selecting public handler errors
+
+By default, thrown values are serialized using their `message`, numeric `code` (or
+`-32000`), and optional `data`. To control which details reach callers, provide a
+synchronous `serializeError(error, method)` callback:
+
+```ts
+import { newWorkersRpcResponse, RpcError } from "@jmorrell/jsonrpc";
+
+return newWorkersRpcResponse(request, service, {
+  serializeError(error, method) {
+    if (error instanceof RpcError) {
+      return { code: error.code, message: error.message, data: error.data };
+    }
+    return {
+      code: -32603,
+      message: "The operation could not be completed. Check its result before retrying.",
+    };
+  },
+});
+```
+
+This option is available on `processRpc`, HTTP handlers, `RpcSession`, and both
+WebSocket peers. It applies only to service-method failures; protocol errors keep
+their standard responses. `onError` still receives `HANDLER_ERROR` with the original
+thrown value as its `cause` before serialization. Callbacks must not throw; returning
+an error does not undo the handler's effects or make retrying safe. The application
+is responsible for selecting safe messages and data, including those on `RpcError`.
+
+### HTTP response failures
+
+For non-2xx HTTP responses, the fetch client throws `RpcError` with the HTTP status
+as its `code`. An `application/json` response containing a nonempty string `error`
+field supplies the message (for example, `{ "error": "Request body is too large" }`).
+Otherwise the message is `Request failed (HTTP <status>).`, even when the response
+has an empty status text. HTML, malformed JSON, and other body shapes are not used
+as messages. Every call in a rejected HTTP batch receives the same error. These
+HTTP failures do not establish whether the server executed the request.
+
 ### `RpcProtocolError`
 
 Protocol-level issues (malformed messages, unknown response IDs, transport failures) are reported via the `onError` callback as `RpcProtocolError` instances. Each has a `code` string:

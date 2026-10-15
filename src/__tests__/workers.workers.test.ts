@@ -342,3 +342,54 @@ describe("Workers runtime integration tests", () => {
     });
   });
 });
+
+describe("WebSocket public handler errors", () => {
+  it("applies each peer's serializer to incoming calls without requiring onError", async () => {
+    const serverService = {
+      fail() {
+        throw new Error("private server detail");
+      },
+    };
+    const clientService = {
+      fail() {
+        throw new Error("private client detail");
+      },
+    };
+    const { response, session: server } = newWorkersWebSocketRpcSession<
+      typeof clientService,
+      typeof serverService
+    >(new Request("http://localhost/rpc", { headers: { Upgrade: "websocket" } }), serverService, {
+      serializeError: (_error, method) => ({
+        code: -32603,
+        message: `Server could not complete ${method}`,
+      }),
+    });
+    const socket = response.webSocket!;
+    socket.accept();
+    using client = newWebSocketRpcSession<typeof serverService, typeof clientService>(
+      socket,
+      clientService,
+      {
+        serializeError: (_error, method) => ({
+          code: -32001,
+          message: `Client could not complete ${method}`,
+          data: { retry: false },
+        }),
+      },
+    );
+    try {
+      await expect(client.remote.fail()).rejects.toMatchObject({
+        code: -32603,
+        message: "Server could not complete fail",
+        data: undefined,
+      });
+      await expect(server.remote.fail()).rejects.toMatchObject({
+        code: -32001,
+        message: "Client could not complete fail",
+        data: { retry: false },
+      });
+    } finally {
+      server.close();
+    }
+  });
+});
